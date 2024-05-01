@@ -1,3 +1,13 @@
+"""
+This script includes functions for computing graph metrics and evaluation measures related to causal graphs.
+
+Functions:
+- F1_score(true_graph, discovered_graph): Computes the F1 score, precision, recall, true positive count, false positive count, false negative count, and true negative count of a discovered graph relative to a reference graph.
+- false_discovery_rate(FP, TP): Computes the False Discovery Rate (FDR) given false positive (FP) and true positive (TP) counts.
+- get_graph_metrics(graph): Returns a set of graph metrics for both the summary and full timeseries graphs.
+- matthews_correlation_coefficient(TP, FP, FN, TN): Computes the Matthews correlation coefficient (MCC) between [-1, 1] given true positive (TP), false positive (FP), false negative (FN), and true negative (TN) counts.
+"""
+
 import numpy as np
 
 
