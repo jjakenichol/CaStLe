@@ -3,7 +3,6 @@ Script for testing VAR-graphs on the given data.
 """
 
 import argparse
-import DSAVAR as ds
 import stencil_functions as sf
 import numpy as np
 import os
@@ -11,11 +10,8 @@ import time
 import sys
 from tigramite.independence_tests.parcorr import ParCorr
 
-sys.path.append(
-    os.path.abspath(
-        os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/"
-    )
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -47,25 +43,21 @@ SAVE_PATH_DIR = os.path.dirname(DATA_PATH)
 DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_full_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_full_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
 parcorr = ParCorr(significance="analytic")
 pc_alpha = 0.01
 alpha_level = 0.01
 if TIME_ALG:
     start_time = time.time()
-reconstructed_graph, val_matrix = sf.PC(
-    data, parcorr, pc_alpha=pc_alpha, dependence_threshold=alpha_level
-)
+reconstructed_graph, val_matrix = sf.PC(data, parcorr, pc_alpha=pc_alpha, dependence_threshold=alpha_level)
 if TIME_ALG:
     end_time = time.time()
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_graph)
 if VERBOSE:
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
 
 output_object = np.array(
     [
@@ -89,8 +81,4 @@ if not PRINT:
 else:
     print(output_object)
 if TIME_ALG:
-    print(
-        "Time elapsed for algorithm completion: {:.2f} seconds".format(
-            end_time - start_time
-        )
-    )
+    print("Time elapsed for algorithm completion: {:.2f} seconscm_gen".format(end_time - start_time))

@@ -1,9 +1,10 @@
 """_summary_
 """
+
 import argparse
 import uuid
 import numpy as np
-import DSAVAR as ds
+import stable_SCM_generator as scm_gen
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--t", type=int, required=True)
@@ -41,9 +42,7 @@ init_mu, init_sigma = (ERROR_MEAN, ERROR_SIGMA)  # mean and standard deviation
 mu, sigma = (ERROR_MEAN, ERROR_SIGMA)  # mean and standard deviation
 data = np.zeros((ROWS, COLS, T, N_VAR))
 
-spatial_coefficients = ds.get_random_stable_coefficient_matrix(
-    GRID_SIZE, DEPENDENCE_DENSITY, min_value_threshold=MIN_VALUE, verbose=0
-)
+spatial_coefficients = scm_gen.get_random_stable_coefficient_matrix(GRID_SIZE, DEPENDENCE_DENSITY, min_value_threshold=MIN_VALUE, verbose=0)
 
 # Initialize data
 data = np.zeros((ROWS, COLS, T, N_VAR))
@@ -64,9 +63,7 @@ for t in range(1, T):
             from_top_left = spatial_coefficients[0, 0] * data[row - 1, col - 1, t - 1, 0]
             from_top_right = spatial_coefficients[0, 2] * data[row - 1, (col + 1) % COLS, t - 1, 0]
             from_bot_left = spatial_coefficients[2, 0] * data[(row + 1) % ROWS, col - 1, t - 1, 0]
-            from_bot_right = (
-                spatial_coefficients[2, 2] * data[(row + 1) % ROWS, (col + 1) % COLS, t - 1, 0]
-            )
+            from_bot_right = spatial_coefficients[2, 2] * data[(row + 1) % ROWS, (col + 1) % COLS, t - 1, 0]
 
             from_self = spatial_coefficients[1, 1] * data[row, col, t - 1, 0]
 

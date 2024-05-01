@@ -1,18 +1,14 @@
 import argparse
 import os
 import warnings
-import DSAVAR as ds
 import numpy as np
 import sys
 from tigramite import data_processing as pp
 from tigramite.independence_tests.parcorr import ParCorr
 from tigramite.pcmci import PCMCI
 
-sys.path.append(
-    os.path.abspath(
-        os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/"
-    )
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, matthews_correlation_coefficient, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -58,8 +54,8 @@ DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
 # Get true graph for later analysis
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
 # Reshape data for input to PCMCI
 read_data = np.ndarray([])
@@ -67,14 +63,10 @@ if len(data.shape) > 3:
     read_data = data[:, :, :, 0]  # only working with first variable for now
 
 if len(read_data.shape) > 2:
-    data = data.reshape(
-        data.shape[0] * data.shape[1], data.shape[2]
-    )  # reshape to N^2xtime
+    data = data.reshape(data.shape[0] * data.shape[1], data.shape[2])  # reshape to N^2xtime
     data = data.transpose()  # Rows must be temporal
 if data.shape[0] < data.shape[1]:
-    warnings.warn(
-        "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
-    )
+    warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
 
 # Begin PCMCI steps
 parcorr = ParCorr(significance="analytic")
@@ -99,9 +91,7 @@ results = pcmci.run_pcmci(
 # print("MCI partial correlations")
 # print(results["val_matrix"].round(2))
 
-q_matrix = pcmci.get_corrected_pvalues(
-    p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh"
-)
+q_matrix = pcmci.get_corrected_pvalues(p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh")
 # pcmci.print_significant_links(
 #     p_matrix=q_matrix, val_matrix=results["val_matrix"], alpha_level=alpha_level
 # )

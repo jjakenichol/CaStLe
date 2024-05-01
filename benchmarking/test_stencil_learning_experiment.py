@@ -2,7 +2,6 @@
 """
 
 import argparse
-import DSAVAR as ds
 import stencil_functions as sf
 import numpy as np
 import os
@@ -11,11 +10,8 @@ from tigramite import data_processing as pp
 from tigramite.independence_tests.parcorr import ParCorr
 from tigramite.pcmci import PCMCI
 
-sys.path.append(
-    os.path.abspath(
-        os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/"
-    )
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, matthews_correlation_coefficient, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -54,11 +50,11 @@ SAVE_PATH_DIR = os.path.dirname(DATA_PATH)
 DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_full_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_full_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
-# template_dynamics_matrix = ds.create_nonwrapping_coefficient_matrix(spatial_coefficients)
-# true_template_graph = ds.get_graph_from_coefficient_matrix(template_dynamics_matrix)
+# template_dynamics_matrix = scm_gen.create_nonwrapping_coefficient_matrix(spatial_coefficients)
+# true_template_graph = scm_gen.get_graph_from_coefficient_matrix(template_dynamics_matrix)
 
 # Learn Template
 ROWS = GRID_SIZE
@@ -115,9 +111,7 @@ results = pcmci.run_pcmci(
     pc_alpha=pc_alpha,
 )
 
-q_matrix = pcmci.get_corrected_pvalues(
-    p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh"
-)
+q_matrix = pcmci.get_corrected_pvalues(p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh")
 reconstructed_template_graph = pcmci.get_graph_from_pmatrix(
     p_matrix=q_matrix,
     alpha_level=alpha_level,
@@ -167,17 +161,15 @@ for parent in center_parents:
 ndm = ndm.reshape((3, 3))
 
 # Construct full graph from NDM of stencil
-reconstructed_dynamics_matrix = ds.create_coefficient_matrix(ndm, GRID_SIZE)
-reconstructed_full_graph, reconst_val_matrix = ds.get_graph_from_coefficient_matrix(
+reconstructed_dynamics_matrix = scm_gen.create_coefficient_matrix(ndm, GRID_SIZE)
+reconstructed_full_graph, reconst_val_matrix = scm_gen.get_graph_from_coefficient_matrix(
     reconstructed_dynamics_matrix, return_val_matrix=True
 )
 
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
 if VERBOSE:
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
 
 output_object = np.array(
     [
@@ -194,13 +186,9 @@ output_object = np.array(
 if not PRINT:
     # Save to file
     if NAIVE_PIP:
-        SAVE_PATH = "{}/SL_H{}_naivePIP_results/r_{}".format(
-            SAVE_PATH_DIR, HEURISTICS_MODE, DATA_FILENAME
-        )
+        SAVE_PATH = "{}/SL_H{}_naivePIP_results/r_{}".format(SAVE_PATH_DIR, HEURISTICS_MODE, DATA_FILENAME)
     else:
-        SAVE_PATH = "{}/SL_H{}_results/r_{}".format(
-            SAVE_PATH_DIR, HEURISTICS_MODE, DATA_FILENAME
-        )
+        SAVE_PATH = "{}/SL_H{}_results/r_{}".format(SAVE_PATH_DIR, HEURISTICS_MODE, DATA_FILENAME)
     if VERBOSE:
         print("Saving data to " + SAVE_PATH)
     with open(SAVE_PATH, "wb") as f:

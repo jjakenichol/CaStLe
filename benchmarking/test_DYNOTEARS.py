@@ -3,28 +3,14 @@ Script for testing DYNO_TEARS on 2D SCM(VAR) data.
 """
 
 import argparse
-import DSAVAR as ds
 import numpy as np
 import pandas as pd
 import os
 import sys
 
-# print(sys.path)
-
-# from tigramite.toymodels import structural_causal_processes
-# from typing import Union
-
-sys.path.append(
-    os.path.abspath(
-        os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/"
-    )
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, get_graph_metrics
-
-# sys.path.append(
-#     os.path.abspath("/ascldap/users/jefnich/.conda/envs/cldera_causal/lib/python3.9/site-packages/causalnex")
-# )
-# print(sys.path)
 from causalnex.structure.dynotears import from_pandas_dynamic
 
 
@@ -56,8 +42,8 @@ DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 LINK_THRESHOLD = 0.1
 
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_full_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_full_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
 
 def lin(x):
@@ -75,14 +61,11 @@ df = pd.DataFrame(data=data, columns=col_names)
 structure_model = from_pandas_dynamic(df, p=1)  # p=1 indicates maximum lag=1
 
 # Convert to graph
-# TODO: import this from ds instead
-reconstructed_graph, val_matrix = ds.get_graph_from_structure_model(structure_model)
+reconstructed_graph, val_matrix = scm_gen.get_graph_from_structure_model(structure_model)
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_graph)
 if VERBOSE:
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
 
 output_object = np.array(
     [
@@ -105,6 +88,4 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))

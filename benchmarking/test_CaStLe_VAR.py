@@ -3,7 +3,6 @@ Script for testing VAR-graphs with CaStLe with the given data.
 """
 
 import argparse
-import DSAVAR as ds
 import stencil_functions as sf
 import numpy as np
 import os
@@ -11,9 +10,8 @@ import sys
 from statsmodels.tsa.api import VAR
 from tigramite.toymodels import structural_causal_processes
 
-sys.path.append(
-    os.path.abspath(os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/")
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -46,8 +44,8 @@ SAVE_PATH_DIR = os.path.dirname(DATA_PATH)
 DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_full_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_full_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
 
 def lin(x):
@@ -73,9 +71,7 @@ for i in range(coefficients.shape[0]):
         SCM[i] = [
             (
                 (j, -1),
-                coefficients.transpose()[i][j]
-                if abs(coefficients.transpose()[i][j]) > dependence_threshold
-                else 0,
+                coefficients.transpose()[i][j] if abs(coefficients.transpose()[i][j]) > dependence_threshold else 0,
                 lin,
             )
             for j in range(coefficients.shape[1])

@@ -3,18 +3,14 @@ Script for testing CaStLe-PC on 2D SCM(VAR) data.
 """
 
 import argparse
-import DSAVAR as ds
 import numpy as np
 import os
 import time
 import stencil_functions as sf
 import sys
 
-sys.path.append(
-    os.path.abspath(
-        os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/"
-    )
-)
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, get_graph_metrics
 from tigramite.independence_tests.parcorr import ParCorr
 
@@ -50,8 +46,8 @@ SAVE_PATH_DIR = os.path.dirname(DATA_PATH)
 DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
-dynamics_matrix = ds.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
-true_full_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+dynamics_matrix = scm_gen.create_coefficient_matrix(spatial_coefficients, GRID_SIZE)
+true_full_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
 # Fit CaStLe
 pc_alpha = 0.01  # None# [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
@@ -69,9 +65,7 @@ reconstructed_graph, val_matrix = sf.CaStLe_PC(
 )
 
 # Expand to original space
-center_parents = sf.get_parents(
-    reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True
-)[4]
+center_parents = sf.get_parents(reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True)[4]
 reconstructed_full_graph = sf.get_expanded_graph(center_parents, GRID_SIZE)
 
 if TIME_ALG:
@@ -79,9 +73,7 @@ if TIME_ALG:
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
 if VERBOSE:
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
 
 output_object = np.array(
     [
@@ -104,12 +96,6 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print(
-        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
-    )
+    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
 if TIME_ALG:
-    print(
-        "Time elapsed for algorithm completion: {:.2f} seconds".format(
-            end_time - start_time
-        )
-    )
+    print("Time elapsed for algorithm completion: {:.2f} seconscm_gen".format(end_time - start_time))

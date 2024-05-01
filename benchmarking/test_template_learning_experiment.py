@@ -1,14 +1,7 @@
 """Neighborhood Aggregation Causal Learning
-
-Spatial causal template learning
-
-Spatial causal-template discovery (SpaCeD)
-
-Causal spatial-template discovery (CaSTeD)
 """
 
 import argparse
-import DSAVAR as ds
 import numpy as np
 import os
 import sys
@@ -16,10 +9,9 @@ from tigramite import data_processing as pp
 from tigramite.independence_tests.parcorr import ParCorr
 from tigramite.pcmci import PCMCI
 
-sys.path.append(
-    os.path.abspath(os.path.expanduser("~") + "/git/cldera/attribution/causalDiscovery/src/")
-)
-from graph_metrics import F1_score, matthews_correlation_coefficient, get_graph_metrics
+sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+import stable_SCM_generator as scm_gen
+from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
@@ -47,11 +39,11 @@ SAVE_PATH_DIR = os.path.dirname(DATA_PATH)
 DATA_FILENAME = os.path.basename(DATA_PATH)
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
-# dynamics_matrix = ds.create_coefficient_matrix(GRID_SIZE, spatial_coefficients)
-# true_graph = ds.get_graph_from_coefficient_matrix(dynamics_matrix)
+# dynamics_matrix = scm_gen.create_coefficient_matrix(GRID_SIZE, spatial_coefficients)
+# true_graph = scm_gen.get_graph_from_coefficient_matrix(dynamics_matrix)
 
-template_dynamics_matrix = ds.create_nonwrapping_coefficient_matrix(spatial_coefficients)
-true_template_graph = ds.get_graph_from_coefficient_matrix(template_dynamics_matrix)
+template_dynamics_matrix = scm_gen.create_nonwrapping_coefficient_matrix(spatial_coefficients)
+true_template_graph = scm_gen.get_graph_from_coefficient_matrix(template_dynamics_matrix)
 
 ROWS = GRID_SIZE
 COLS = GRID_SIZE
@@ -108,9 +100,7 @@ results = pcmci.run_pcmci(
 # print("MCI partial correlations")
 # print(results["val_matrix"].round(2))
 
-q_matrix = pcmci.get_corrected_pvalues(
-    p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh"
-)
+q_matrix = pcmci.get_corrected_pvalues(p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh")
 # pcmci.print_significant_links(
 #     p_matrix=q_matrix, val_matrix=results["val_matrix"], alpha_level=alpha_level
 # )
