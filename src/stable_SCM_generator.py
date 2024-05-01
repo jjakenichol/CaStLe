@@ -477,16 +477,50 @@ def get_graph_from_coefficient_matrix(dynamics_matrix, func=lambda x: x, return_
 
 
 def generate_dataset(
-    T,
-    grid_size,
+    T: int,
+    grid_size: int,
     spatial_coefficients=None,
     dependence_density=None,
     min_value=None,
-    mode=False,
     error_sigma=0.1,
     error_mean=0,
     verbose=0,
-):
+) -> np.ndarray:
+    """
+    Generates a spatiotemporal dataset based on a given grid size and spatial coefficients.
+
+    This function generates a spatiotemporal dataset based on the provided parameters.
+    It initializes a data array and runs a simulation loop to generate the data by applying the spatial coefficients 
+        to the previous time step's data, incorporating noise.
+    The generated dataset is returned as a 3-dimensional NumPy array with the shape (grid_size, grid_size, T).
+    The function also supports the option to provide custom spatial coefficients or generate them randomly based on the
+        dependence density and minimum value.
+
+    Parameters
+    ----------
+    T : int
+        Number of time samples.
+    grid_size : int
+        Dimension of the square grid.
+    spatial_coefficients : array-like, optional
+        Coefficient matrix representing the spatial dependencies. If not provided, it will be randomly generated based on the dependence density and minimum value.
+    dependence_density : float, optional
+        Density of the desired coefficient matrix. Required if spatial_coefficients is not provided.
+    min_value : float, optional
+        Minimum value of the coefficient matrix. Required if spatial_coefficients is not provided.
+    error_sigma : float, optional
+        Standard deviation of the added noise in the simulation. Default is 0.1.
+    error_mean : float, optional
+        Mean of the added noise in the simulation. Default is 0.
+    verbose : int, optional
+        Verbosity level. Default is 0.
+
+    Returns
+    -------
+    ndarray
+        A 3-dimensional array representing the generated spatiotemporal dataset with shape (grid_size, grid_size, T).
+    """
+
     ROWS = grid_size
     COLS = grid_size
     mu, sigma = (error_mean, error_sigma)  # mean and standard deviation
@@ -503,12 +537,6 @@ def generate_dataset(
 
     # Initialize data
     data = np.zeros((ROWS, COLS, T))
-    if mode:
-        print("mode not yet implemented.")
-        raise ValueError
-        # data[:, :, :, :] = np.random.normal(init_mu, init_sigma, size=(ROWS, COLS, T, n_var))
-        # data[(y_pos-int(size/2)):(y_pos+int(size/2)), (x_pos-int(size/2)):(x_pos+int(size/2)), 0, 0] = Z
-        # data[(y_pos-int(size/2)):(y_pos+int(size/2)) + 1, (x_pos-int(size/2)):(x_pos+int(size/2)) + 1, 0, 0] = Z
 
     # Run simulation
     for t in range(1, T):
@@ -543,16 +571,22 @@ def generate_dataset(
 
 
 def get_graph_from_structure_model(structure_model: StructureModel, include_val_matrix=True) -> Union[tuple, list]:
-    """Convert a causalnex.structure.StructureModel to a string-graph and val_matrix in the style of TIGRAMITE.
+    """
+    Convert a causalnex.structure.StructureModel to a string-graph and val_matrix in the style of the Tigramite library.
 
     StructureModel inherits networkx's DiGraph, which this conversion relies upon.
 
-    Args:
-        structure_model (StructureModel): causalnex.structure.StructureModel, graph from CausalNex
-        include_val_matrix (bool, optional): Whether to return a value matrix, returns only string-graph if False. Defaults to True.
+    Parameters
+    ----------
+    structure_model : causalnex.structure.StructureModel
+        Graph from CausalNex.
+    include_val_matrix : bool, optional
+        Whether to return a value matrix. If False, only the string-graph is returned. Default is True.
 
-    Returns:
-        Union[tuple, list]: A tuple of two lists (string-graph and float-graph) or just a list (string-graph)
+    Returns
+    -------
+    Union[tuple, list]
+        A tuple of two lists (string-graph and float-graph) if include_val_matrix is True, or just a list (string-graph) if include_val_matrix is False.
     """
     parents_to_add = []
     min_lag = 0
