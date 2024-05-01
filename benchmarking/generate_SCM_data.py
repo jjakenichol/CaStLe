@@ -1,4 +1,23 @@
-"""_summary_
+"""
+This script generates spatiotemporal data based on a 2D structural causal model using vector autoregression.
+
+The script utilizes the stable_SCM_generator module to generate random stable coefficient matrices based on the specified parameters.
+It then initializes the data array and runs a simulation loop to generate the spatiotemporal data by applying the coefficient matrix
+to the previous time step's data, incorporating noise.
+
+The script takes command-line arguments to specify various parameters such as the number of time samples (T),
+the dimension of the square grid (GRID_SIZE), the density of the desired coefficient matrix (DEPENDENCE_DENSITY),
+the minimum value of the coefficient matrix (MIN_VALUE), the standard deviation of the added noise in simulation (ERROR_SIGMA),
+the number of experimental repetitions (NUM_REPETITION), the save path prefix for the output file (SAVE_PATH_PREFIX),
+and the verbosity level (VERBOSE).
+
+The generated data is saved to a file in the NumPy binary format (.npy) with a unique filename based on the specified parameters.
+If no save path prefix is provided, the default save path is used.
+
+Usage:
+python generate_SCM_data.py --t <number_of_time_samples> --grid_size <dimension_of_square_grid> --dependence_density <density_of_coefficient_matrix>
+                      --min_value <minimum_value_of_coefficient_matrix> --error_sigma <standard_deviation_of_noise> [--num_repetition <number_of_repetitions>]
+                      [--save_path_prefix <save_path_prefix>] [--verbose <verbosity_level>]
 """
 
 import argparse
@@ -11,7 +30,6 @@ parser.add_argument("--t", type=int, required=True)
 parser.add_argument("--grid_size", type=int, required=True)
 parser.add_argument("--dependence_density", type=float, required=True)
 parser.add_argument("--min_value", type=float, required=True)
-parser.add_argument("--mode", action=argparse.BooleanOptionalAction)
 parser.add_argument("--error_sigma", type=float, required=True)
 parser.add_argument("--num_repetition", type=int, required=False, default=1)
 parser.add_argument("--save_path_prefix", type=str, required=False)
@@ -22,7 +40,6 @@ T = args.t  # Number of time samples
 GRID_SIZE = args.grid_size  # Dimension of square grid
 DEPENDENCE_DENSITY = args.dependence_density  # Density of the desired coefficient matrix
 MIN_VALUE = args.min_value  # Minimum value of the coefficient matrix
-MODE = args.mode  # Whether to initialize the field with a mode
 ERROR_SIGMA = args.error_sigma  # Standard deviation of the added noise in simulation
 ERROR_MEAN = 0  # Mean of the added noise in simulation
 N_VAR = 1  # Number of variables
@@ -42,14 +59,12 @@ init_mu, init_sigma = (ERROR_MEAN, ERROR_SIGMA)  # mean and standard deviation
 mu, sigma = (ERROR_MEAN, ERROR_SIGMA)  # mean and standard deviation
 data = np.zeros((ROWS, COLS, T, N_VAR))
 
-spatial_coefficients = scm_gen.get_random_stable_coefficient_matrix(GRID_SIZE, DEPENDENCE_DENSITY, min_value_threshold=MIN_VALUE, verbose=0)
+spatial_coefficients = scm_gen.get_random_stable_coefficient_matrix(
+    GRID_SIZE, DEPENDENCE_DENSITY, min_value_threshold=MIN_VALUE, verbose=0
+)
 
 # Initialize data
 data = np.zeros((ROWS, COLS, T, N_VAR))
-if MODE:
-    data[:, :, :, :] = np.random.normal(init_mu, init_sigma, size=(ROWS, COLS, T, N_VAR))
-    # data[(y_pos-int(size/2)):(y_pos+int(size/2)), (x_pos-int(size/2)):(x_pos+int(size/2)), 0, 0] = Z
-    # data[(y_pos-int(size/2)):(y_pos+int(size/2)) + 1, (x_pos-int(size/2)):(x_pos+int(size/2)) + 1, 0, 0] = Z
 
 # Run simulation
 for t in range(1, T):
@@ -83,7 +98,7 @@ for t in range(1, T):
 # Save to file
 if not SAVE_PATH_PREFIX:
     SAVE_PATH = (
-        "../../data/DSAVAR/"
+        "../data/"
         + str(GRID_SIZE)
         + "x"
         + str(GRID_SIZE)
@@ -93,9 +108,7 @@ if not SAVE_PATH_PREFIX:
         + str(DEPENDENCE_DENSITY)
         + "density_"
         + str(MIN_VALUE)
-        + "minval_wMode-"
-        + str(MODE)
-        + "_"
+        + "minval_"
         + str(uuid.uuid4().hex)
         + ".npy"
     )
@@ -113,9 +126,7 @@ else:
         + str(DEPENDENCE_DENSITY)
         + "density_"
         + str(MIN_VALUE)
-        + "minval_wMode-"
-        + str(MODE)
-        + "_"
+        + "minval_"
         + str(uuid.uuid4().hex)
         + ".npy"
     )
