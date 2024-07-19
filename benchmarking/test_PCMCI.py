@@ -1,3 +1,25 @@
+"""
+Script for testing PCMCI on the given data.
+
+This script performs the following steps:
+1. Parses command-line arguments to get the data path and optional flags.
+2. Loads spatial coefficients and data from the specified file.
+3. Generates a dynamics matrix and true full graph from the spatial coefficients.
+4. Reshapes the data for input to PCMCI.
+5. Fits the PCMCI model to the data.
+6. Computes F1 score and other graph metrics.
+7. Saves the results to a file or prints them based on the provided flags.
+
+Command-line arguments:
+--data_path (str): Path to the input data file (required).
+--plot (bool): Flag to plot the results (optional).
+--print (bool): Flag to print the results instead of saving (optional).
+--verbose (bool): Flag to enable verbose output (optional).
+
+Example usage:
+python benchmarking/test_PCMCI.py --data_path path/to/data.npy --print --verbose
+"""
+
 import argparse
 import os
 import warnings
@@ -9,28 +31,14 @@ from tigramite.pcmci import PCMCI
 
 sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
 import stable_SCM_generator as scm_gen
-from graph_metrics import F1_score, matthews_correlation_coefficient, get_graph_metrics
+from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
-# parser.add_argument("--t", type=int, required=True)
-# parser.add_argument("--GRID_SIZE", type=int, required=True)
-# parser.add_argument("--DEPENDENCE_DENSITY", type=float, required=True)
-# parser.add_argument("--MIN_VALUE", type=float, required=True)
-# parser.add_argument("--mode", action=argparse.BooleanOptionalAction)
-# parser.add_argument("--error_sigma", type=float, required=True)
 parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--plot", action=argparse.BooleanOptionalAction)
 parser.add_argument("--print", action=argparse.BooleanOptionalAction)
 parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
-# parser.add_argument("--verbose", type=int, required=False)
 args = parser.parse_args()
-
-# T = args.t  # Number of time samples
-# GRID_SIZE = args.GRID_SIZE  # Dimension of square grid
-# DEPENDENCE_DENSITY = args.DEPENDENCE_DENSITY  # Density of the desired coefficient matrix
-# MIN_VALUE = args.MIN_VALUE  # Minimum value of the coefficient matrix
-# MODE = args.mode  # Whether to initialize the field with a mode
-# ERROR_SIGMA = args.error_sigma  # Standard deviation of the added noise in simulation
 ERROR_MEAN = 0  # Mean of the added noise in simulation
 N_VAR = 1  # Number of variables
 
@@ -63,10 +71,14 @@ if len(data.shape) > 3:
     read_data = data[:, :, :, 0]  # only working with first variable for now
 
 if len(read_data.shape) > 2:
-    data = data.reshape(data.shape[0] * data.shape[1], data.shape[2])  # reshape to N^2xtime
+    data = data.reshape(
+        data.shape[0] * data.shape[1], data.shape[2]
+    )  # reshape to N^2xtime
     data = data.transpose()  # Rows must be temporal
 if data.shape[0] < data.shape[1]:
-    warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
+    warnings.warn(
+        "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+    )
 
 # Begin PCMCI steps
 parcorr = ParCorr(significance="analytic")
@@ -76,25 +88,17 @@ min_tau = 1
 max_tau = 1
 
 pcmci.verbosity = 0
-pc_alpha = 0.01  # None# [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+pc_alpha = 0.01
 alpha_level = 0.01
 results = pcmci.run_pcmci(
     tau_min=min_tau,
     tau_max=max_tau,
     pc_alpha=pc_alpha,
 )
-# results = pcmci.run_pcmciplus(tau_min=min_tau, tau_max=max_tau, pc_alpha=alpha_level,)
 
-
-# print("p-values")
-# print(results["p_matrix"].round(3))
-# print("MCI partial correlations")
-# print(results["val_matrix"].round(2))
-
-q_matrix = pcmci.get_corrected_pvalues(p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh")
-# pcmci.print_significant_links(
-#     p_matrix=q_matrix, val_matrix=results["val_matrix"], alpha_level=alpha_level
-# )
+q_matrix = pcmci.get_corrected_pvalues(
+    p_matrix=results["p_matrix"], tau_min=min_tau, tau_max=max_tau, fdr_method="fdr_bh"
+)
 reconstructed_graph = pcmci.get_graph_from_pmatrix(
     p_matrix=q_matrix,
     alpha_level=alpha_level,
@@ -125,23 +129,3 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-
-# if PLOT:
-#     import matplotlib.pyplot as plt
-#     from tigramite import plotting as tp
-
-#     node_positions = {
-#         "x": list(np.array([[i for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]).flatten()),
-#         "y": [i for i in range(GRID_SIZE) for j in range(GRID_SIZE)],
-#     }
-#     ax, fig = plt.subplots()
-#     tp.plot_graph(
-#         val_matrix=results["val_matrix"],
-#         graph=reconstructed_graph,
-#         figsize=(12, 10),
-#         # var_names=var_names,
-#         node_pos=node_positions,
-#         link_colorbar_label="cross-MCI",
-#         node_colorbar_label="auto-MCI",
-#     )
-#     plt.show()

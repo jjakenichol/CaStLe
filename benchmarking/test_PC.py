@@ -1,5 +1,24 @@
 """
-Script for testing VAR-graphs on the given data.
+Script for testing the PC algorithm on the given data.
+
+This script performs the following steps:
+1. Parses command-line arguments to get the data path and optional flags.
+2. Loads spatial coefficients and data from the specified file.
+3. Generates a dynamics matrix and true full graph from the spatial coefficients.
+4. Fits the PC algorithm to the data.
+5. Computes F1 score and other graph metrics.
+6. Optionally times the algorithm execution.
+7. Saves the results to a file or prints them based on the provided flags.
+
+Command-line arguments:
+--data_path (str): Path to the input data file (required).
+--plot (bool): Flag to plot the results (optional).
+--print (bool): Flag to print the results instead of saving (optional).
+--time_alg (bool): Flag to time the algorithm execution (optional).
+--verbose (bool): Flag to enable verbose output (optional).
+
+Example usage:
+python benchmarking/test_PC.py --data_path path/to/data.npy --print --verbose --time_alg
 """
 
 import argparse
@@ -51,13 +70,17 @@ pc_alpha = 0.01
 alpha_level = 0.01
 if TIME_ALG:
     start_time = time.time()
-reconstructed_graph, val_matrix = sf.PC(data, parcorr, pc_alpha=pc_alpha, dependence_threshold=alpha_level)
+reconstructed_graph, val_matrix = sf.PC(
+    data, parcorr, pc_alpha=pc_alpha, dependence_threshold=alpha_level
+)
 if TIME_ALG:
     end_time = time.time()
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_graph)
 if VERBOSE:
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
 
 output_object = np.array(
     [
@@ -81,4 +104,4 @@ if not PRINT:
 else:
     print(output_object)
 if TIME_ALG:
-    print("Time elapsed for algorithm completion: {:.2f} seconscm_gen".format(end_time - start_time))
+    print("Time elapsed for algorithm completion: {:.2f}".format(end_time - start_time))

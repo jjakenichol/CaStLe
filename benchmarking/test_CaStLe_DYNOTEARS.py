@@ -1,5 +1,24 @@
 """
-Script for testing DYNO_TEARS on 2D SCM(VAR) data.
+Script for testing CaStLe-DYNOTEARS on 2D SCM(VAR) data.
+
+This script performs the following steps:
+1. Parses command-line arguments to get the data path and optional flags.
+2. Loads spatial coefficients and data from the specified file.
+3. Generates a dynamics matrix and true full graph from the spatial coefficients.
+4. Fits the DYNOTEARS model to the data.
+5. Converts the fitted model to a graph.
+6. Expands the reconstructed graph to the original space.
+7. Computes F1 score and other graph metrics.
+8. Saves the results to a file or prints them based on the provided flags.
+
+Command-line arguments:
+--data_path (str): Path to the input data file (required).
+--plot (bool): Flag to plot the results (optional).
+--print (bool): Flag to print the results instead of saving (optional).
+--verbose (bool): Flag to enable verbose output (optional).
+
+Example usage:
+python benchmarking/test_CaStLe_DYNOTEARS.py --data_path path/to/data.npy --print --verbose
 """
 
 import argparse
@@ -57,18 +76,26 @@ for i in col_names:
     for j in col_names:
         # Ban all links from lag 0, ie only allow lag1 -> lag0
         taboo_edges.append((0, i, j))
-structure_model_castled = from_pandas_dynamic(df_castled, p=1, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children)
+structure_model_castled = from_pandas_dynamic(
+    df_castled, p=1, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children
+)
 
 # Convert to graph
-reconstructed_graph, val_matrix = scm_gen.get_graph_from_structure_model(structure_model_castled)
+reconstructed_graph, val_matrix = scm_gen.get_graph_from_structure_model(
+    structure_model_castled
+)
 
 # Expand to original space
-center_parents = sf.get_parents(reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True)[4]
+center_parents = sf.get_parents(
+    reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True
+)[4]
 reconstructed_full_graph = sf.get_expanded_graph(center_parents, GRID_SIZE)
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
 if VERBOSE:
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
 
 output_object = np.array(
     [
@@ -91,4 +118,6 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )

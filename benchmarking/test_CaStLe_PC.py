@@ -1,5 +1,25 @@
 """
 Script for testing CaStLe-PC on 2D SCM(VAR) data.
+
+This script performs the following steps:
+1. Parses command-line arguments to get the data path and optional flags.
+2. Loads spatial coefficients and data from the specified file.
+3. Generates a dynamics matrix and true full graph from the spatial coefficients.
+4. Fits the CaStLe-PC model to the data.
+5. Expands the reconstructed graph to the original space.
+6. Computes F1 score and other graph metrics.
+7. Optionally times the algorithm execution.
+8. Saves the results to a file or prints them based on the provided flags.
+
+Command-line arguments:
+--data_path (str): Path to the input data file (required).
+--plot (bool): Flag to plot the results (optional).
+--print (bool): Flag to print the results instead of saving (optional).
+--time_alg (bool): Flag to time the algorithm execution (optional).
+--verbose (bool): Flag to enable verbose output (optional).
+
+Example usage:
+python benchmarking/test_CaStLe_PC.py --data_path path/to/data.npy --print --verbose --time_alg
 """
 
 import argparse
@@ -17,7 +37,6 @@ from tigramite.independence_tests.parcorr import ParCorr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
-parser.add_argument("--naivePIP", action=argparse.BooleanOptionalAction)
 parser.add_argument("--plot", action=argparse.BooleanOptionalAction)
 parser.add_argument("--print", action=argparse.BooleanOptionalAction)
 parser.add_argument("--time_alg", action=argparse.BooleanOptionalAction)
@@ -25,7 +44,6 @@ parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 DATA_PATH = args.data_path
-NAIVE_PIP = args.naivePIP
 PRINT = args.print
 PLOT = args.plot
 TIME_ALG = args.time_alg
@@ -65,7 +83,9 @@ reconstructed_graph, val_matrix = sf.CaStLe_PC(
 )
 
 # Expand to original space
-center_parents = sf.get_parents(reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True)[4]
+center_parents = sf.get_parents(
+    reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True
+)[4]
 reconstructed_full_graph = sf.get_expanded_graph(center_parents, GRID_SIZE)
 
 if TIME_ALG:
@@ -73,7 +93,9 @@ if TIME_ALG:
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
 if VERBOSE:
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
 
 output_object = np.array(
     [
@@ -96,6 +118,12 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
 if TIME_ALG:
-    print("Time elapsed for algorithm completion: {:.2f} seconscm_gen".format(end_time - start_time))
+    print(
+        "Time elapsed for algorithm completion: {:.2f} seconscm_gen".format(
+            end_time - start_time
+        )
+    )

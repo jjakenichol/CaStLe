@@ -1,5 +1,24 @@
 """
 Script for testing VAR-graphs with CaStLe with the given data.
+
+This script performs the following steps:
+1. Parses command-line arguments to get the data path and optional flags.
+2. Loads spatial coefficients and data from the specified file.
+3. Generates a dynamics matrix and true full graph from the spatial coefficients.
+4. Fits a VAR model to the concatenated data.
+5. Constructs a stencil graph from the VAR model coefficients.
+6. Expands the reconstructed graph to the original space.
+7. Computes F1 score and other graph metrics.
+8. Saves the results to a file or prints them based on the provided flags.
+
+Command-line arguments:
+--data_path (str): Path to the input data file (required).
+--plot (bool): Flag to plot the results (optional).
+--print (bool): Flag to print the results instead of saving (optional).
+--verbose (bool): Flag to enable verbose output (optional).
+
+Example usage:
+python benchmarking/test_CaStLe_VAR.py --data_path path/to/data.npy --print --verbose
 """
 
 import argparse
@@ -54,7 +73,9 @@ def lin(x):
 
 
 ########### castle #############
-concatenated_data = sf.concatenate_timeseries_wrapping(data, GRID_SIZE, GRID_SIZE, rows_inverted=True)
+concatenated_data = sf.concatenate_timeseries_wrapping(
+    data, GRID_SIZE, GRID_SIZE, rows_inverted=True
+)
 
 # Fit VAR
 model = VAR(concatenated_data)
@@ -71,18 +92,20 @@ for i in range(coefficients.shape[0]):
         SCM[i] = [
             (
                 (j, -1),
-                coefficients.transpose()[i][j] if abs(coefficients.transpose()[i][j]) > dependence_threshold else 0,
+                (
+                    coefficients.transpose()[i][j]
+                    if abs(coefficients.transpose()[i][j]) > dependence_threshold
+                    else 0
+                ),
                 lin,
             )
             for j in range(coefficients.shape[1])
         ]
 reconstructed_stencil_graph = structural_causal_processes.links_to_graph(SCM)
 all_parents = sf.get_parents(reconstructed_stencil_graph)
-reconstructed_full_graph = sf.get_expanded_graph(all_parents[4], GRID_SIZE, wrapping=False)
-
-# if VERBOSE:
-# F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
-# print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+reconstructed_full_graph = sf.get_expanded_graph(
+    all_parents[4], GRID_SIZE, wrapping=False
+)
 
 output_object = np.array(
     [
