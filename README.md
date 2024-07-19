@@ -2,7 +2,11 @@
 
 This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Climate Science: A Local Stencil Learning Approach* by J. Jake Nichol, Micahel Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
 
+### Abstract
+
 Causal discovery tools enable scientists to infer meaningful relationships from observational data, spurring advances in fields as diverse as biology, economics, and climate science. Despite these successes, the application of causal discovery to space-time systems remains immensely challenging due to the high-dimensional nature of the data. For example, in climate sciences, modern observational temperature records over the past few decades regularly measure thousands of locations around the globe. To address these challenges, we introduce **Ca**usal **S**pace-Time S**t**encil **Le**arning (**CaStLe**), a novel algorithm for discovering causal structures in complex space-time systems. CaStLe leverages regularities in local dependence to learn governing global dynamics. This local perspective eliminates spurious confounding and drastically reduces sample complexity, making space-time causal discovery practical and effective. These advances enable causal discovery of geophysical phenomena that were previously unapproachable, including non-periodic, transient phenomena such as volcanic eruption plumes. When applied to ever-larger spatial grids, CaStLe's performance actually improves because it transforms large grids into *informative spatial replicates*. We successfully apply CaStLe to discover the atmospheric dynamics governing the climate response to the 1991 Mount Pinatubo volcanic eruption. We additionally provide extensive validation experiments to demonstrate the effectiveness of CaStLe over existing causal-discovery frameworks on a range of climate-inspired benchmarks.
+
+### Overview
 
 The repository is organized into several directories:
 
