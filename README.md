@@ -1,93 +1,93 @@
 # CaStLe
 
+This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Climate Science: A Local Stencil Learning Approach* by J. Jake Nichol, Micahel Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
 
+Causal discovery tools enable scientists to infer meaningful relationships from observational data, spurring advances in fields as diverse as biology, economics, and climate science. Despite these successes, the application of causal discovery to space-time systems remains immensely challenging due to the high-dimensional nature of the data. For example, in climate sciences, modern observational temperature records over the past few decades regularly measure thousands of locations around the globe. To address these challenges, we introduce **Ca**usal **S**pace-Time S**t**encil **Le**arning (**CaStLe**), a novel algorithm for discovering causal structures in complex space-time systems. CaStLe leverages regularities in local dependence to learn governing global dynamics. This local perspective eliminates spurious confounding and drastically reduces sample complexity, making space-time causal discovery practical and effective. These advances enable causal discovery of geophysical phenomena that were previously unapproachable, including non-periodic, transient phenomena such as volcanic eruption plumes. When applied to ever-larger spatial grids, CaStLe's performance actually improves because it transforms large grids into *informative spatial replicates*. We successfully apply CaStLe to discover the atmospheric dynamics governing the climate response to the 1991 Mount Pinatubo volcanic eruption. We additionally provide extensive validation experiments to demonstrate the effectiveness of CaStLe over existing causal-discovery frameworks on a range of climate-inspired benchmarks.
 
-## Getting started
+The repository is organized into several directories:
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- `benchmarking`: Contains scripts for testing different configurations of the CaStLe model on various datasets.
+- `data`: Includes sample datasets used for testing and validation.
+- `figure_generation`: Jupyter notebooks for generating figures and analyzing results.
+- `src`: Source code for the core functionalities of the CaStLe algorithm, including causal discovery and graph metrics.
+ 
+ 
+## Data
+ 
+The data generated and used for our HSW-V, VAR, and PDE experiments are available on Zenodo via [this link](https://zenodo.org/records/12701546?token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjZiODBjOGQ3LTc5NGMtNGZlYS1iMmZlLTM4MWY2ODk4ZjQ0MyIsImRhdGEiOnt9LCJyYW5kb20iOiI5YTZmNTY1ZjE5MzYyYWFmOGNmNzcxYTBhYWYzMjdmZCJ9.aki35C-lcVLEEbc4QCaxgvjkDIUZbzgWLkPwgnYtMOHYWtGdWKWChgtdQtxS14TqgYCuGRUwC7o8L0YZCggE-w) with GNU Lesser General Public License v3.0 or later. The data used for the E3SMv2-SPA experiments can be found in [1,2].
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+[1] Hunter York Brown, Benjamin Wagman, Diana Bull, Kara Peterson, Benjamin Hillman, Xiaohong Liu, Ziming Ke, and Lin Lin. 2024. Validating a microphysical prognostic stratospheric aerosol implementation in E3SMv2 using observations after the Mount Pinatubo eruption. Geoscientific Model Development 17, 13 (2024), 5087-5121. https://doi.org/10.5194/gmd-17-5087-2024.
 
-## Add your files
+[2] Tom Ehrmann, Benjamin Wagman, Diana Bull, Hunter York Brown, Benjamin Hillman, Kara Peterson, Laura Swiler, Jerry Watkins, and Joseph Hart. 2024. Identifying Northern Hemisphere Temperature Responses to the Mt. Pinatubo Eruption through Limited Variability Ensembles. To be submitted to Climate Dynamics 17, 13 (2024), 5087-5121. https://doi.org/10.5194/cd-17-5087-2024.
+ 
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## Setting Up the Environment
 
+This project provides two ways to set up the environment: using Conda or Pip. Follow the instructions below based on your preference.
+
+### Using Conda
+
+1. **Install Conda**: If you don't have Conda installed, you can download and install it from [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+
+2. **Create the Environment**: Use the `conda_environment.yml` file to create the environment.
+    ```bash
+    conda env create -f conda_environment.yml
+    ```
+
+3. **Activate the Environment**: After creating the environment, activate it.
+    ```bash
+    conda activate your_environment_name
+    ```
+
+### Using Pip
+
+1. **Install Python**: Ensure you have Python installed. You can download and install it from [here](https://www.python.org/downloads/).
+
+2. **Create a Virtual Environment**: Create and activate a virtual environment using `venv`.
+    ```bash
+    python -m venv myenv
+    source myenv/bin/activate  # On Windows use `myenv\Scripts\activate`
+    ```
+
+3. **Install Packages**: Use the `pip_requirements.txt` file to install the required packages.
+    ```bash
+    pip install -r pip_requirements.txt
+    ```
+ 
+## Using this Code
+
+### Source Code
+
+The `src` directory contains the core functionalities of the CaStLe algorithm, including causal discovery and graph metrics. Key files include:
+
+- `stencil_functions.py`: Contains the minimum code to run CaStLe using various causal discovery algorithms for the Parent Identification Phase (PIP). It includes implementations for CaStLe-PC, CaStLe-PCMCI, and other supporting functions.
+- `graph_metrics.py`: Includes functions for computing graph metrics and evaluation measures related to causal graphs.
+- `stable_SCM_generator.py`: Provides functions to generate stable Structural Causal Models (SCMs) for spatiotemporal datasets.
+ 
+### Benchmarking Scripts
+
+The `benchmarking` directory contains several scripts for testing different configurations of the CaStLe model. Each script follows a similar structure and can be run from the command line with various options.
+
+Example usage:
+```bash
+python benchmarking/test_CaStLe_PC.py --data_path path/to/data.npy --print --verbose --time_alg
 ```
-cd existing_repo
-git remote add origin https://gitlab-ex.sandia.gov/jefnich/castle.git
-git branch -M main
-git push -uf origin main
+
+#### Generating 2D SCM test data with `generate_SCM_data.py`
+
+This script generates spatiotemporal data based on a 2D structural causal model using vector autoregression.
+
+The script utilizes the `stable_SCM_generator` module to generate random stable coefficient matrices based on the specified parameters. It then initializes the data array and runs a simulation loop to generate the spatiotemporal data by applying the coefficient matrix to the previous time step's data, incorporating noise.
+
+The script takes command-line arguments to specify various parameters such as the number of time samples (T), the dimension of the square grid (GRID_SIZE), the density of the desired coefficient matrix (DEPENDENCE_DENSITY), the minimum value of the coefficient matrix (MIN_VALUE), the standard deviation of the added noise in simulation (ERROR_SIGMA), the number of experimental repetitions (NUM_REPETITION), the save path prefix for the output file (SAVE_PATH_PREFIX), and the verbosity level (VERBOSE).
+
+The generated data is saved to a file in the NumPy binary format (.npy) with a unique filename based on the specified parameters. If no save path prefix is provided, the default save path is used.
+
+Example usage:
+```bash
+python generate_SCM_data.py --t <number_of_time_samples> --grid_size <dimension_of_square_grid> --dependence_density <density_of_coefficient_matrix> --min_value <minimum_value_of_coefficient_matrix> --error_sigma <standard_deviation_of_noise> [--num_repetition <number_of_repetitions>] [--save_path_prefix <save_path_prefix>] [--verbose <verbosity_level>]
 ```
 
-## Integrate with your tools
+### Figure Generation
 
-- [ ] [Set up project integrations](https://gitlab-ex.sandia.gov/jefnich/castle/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+The `figure_generation` directory contains Jupyter notebooks for generating figures and analyzing results. These notebooks can be opened and run in a Jupyter environment.
