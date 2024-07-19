@@ -1,14 +1,50 @@
 """
-This file contains the minimum code to run CaStLe using the PC-Stable causal discovery algorithm for the Parent Identification Phase (PIP).
+This file contains the minimum code to run CaStLe using various causal discovery algorithms for the Parent Identification Phase (PIP).
 
-PC-Stable and several other data structure related supporting functions are imported from the TIGRAMITE library.
+PC-Stable, PCMCI, and several other data structure related supporting functions are imported from the TIGRAMITE library.
+
+Functions:
+----------
+1. CaStLe_PCMCI(data: np.ndarray, cond_ind_test: CondIndTest, pc_alpha: float, rows_inverted=True, dependence_threshold=0.01, dependencies_wrap=False) -> tuple
+    The CaStLe algorithm implemented with PCMCI for the parent-identification phase.
+
+2. CaStLe_PC(data: np.ndarray, cond_ind_test: CondIndTest, pc_alpha: float, rows_inverted=False, dependence_threshold=0.01, dependencies_wrap=False) -> tuple
+    The CaStLe algorithm implemented with PC for the parent-identification phase.
+
+3. PC(data: np.ndarray, cond_ind_test: CondIndTest, min_tau: int, max_tau: int, pc_alpha: float, pval_threshold=0.01) -> tuple
+    The PC algorithm for time series data.
+
+4. PC_stable(data: np.ndarray, cond_ind_test: CondIndTest, min_tau: int, max_tau: int, pc_alpha: float) -> tuple
+    The PC-Stable algorithm for time series data.
+
+5. concatenate_timeseries_wrapping(data: np.ndarray, rows_inverted=True, include_cell_index_column=False) -> np.ndarray
+    Concatenates time series data with wrapping dependencies.
+
+6. concatenate_timeseries_nonwrapping(data: np.ndarray, rows_inverted=True, include_cell_index_column=False) -> np.ndarray
+    Concatenates time series data without wrapping dependencies.
+
+Example Usage:
+--------------
+To run CaStLe with PCMCI:
+>>> graph, val_matrix = CaStLe_PCMCI(data, cond_ind_test, pc_alpha=0.05)
+
+To run CaStLe with PC:
+>>> graph, val_matrix = CaStLe_PC(data, cond_ind_test, pc_alpha=0.05)
+
+To run the PC algorithm:
+>>> graph, val_matrix = PC(data, cond_ind_test, min_tau=1, max_tau=1, pc_alpha=0.05)
+
+To run the PC-Stable algorithm:
+>>> results = PC_stable(data, cond_ind_test, min_tau=1, max_tau=1, pc_alpha=0.05)
 """
 
 import numpy as np
 from tigramite import data_processing as pp
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 from tigramite.toymodels import structural_causal_processes
+from tigramite.pcmci import PCMCI
 import pc_stable_single
+import warnings
 
 
 def concatenate_timeseries_wrapping(
@@ -230,3 +266,252 @@ def CaStLe(
                 val_matrix[dependence[0][0], row, 1] = coefficient
 
     return graph, val_matrix
+
+
+def CaStLe_PCMCI(
+    data: np.ndarray,
+    cond_ind_test: CondIndTest,
+    pc_alpha: float,
+    rows_inverted=True,
+    dependence_threshold=0.01,
+    dependencies_wrap=False,
+) -> tuple:
+    """The CaStLe algorithm implemented with PCMCI for the parent-identification phase.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe-PCMCI.
+        cond_ind_test (CondIndTest): The conditional independence test to be used in the parent-identification phase.
+        pc_alpha (float): Significance level in PCMCI.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to True.
+        dependence_threshold (float, optional): Significance level at which the p_matrix from PCMCI is thresholded to get the graph. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    min_tau = 1
+    max_tau = 1
+
+    if dependencies_wrap:
+        concatenated_data = concatenate_timeseries_wrapping(
+            data, rows_inverted=rows_inverted, include_cell_index_column=False
+        )
+    else:
+        concatenated_data = concatenate_timeseries_nonwrapping(
+            data, rows_inverted=rows_inverted, include_cell_index_column=False
+        )
+    pcmci_df = pp.DataFrame(concatenated_data[:, :9])
+
+    # Only estimate parents of variable 4
+    link_assumptions = {}
+    for j in range(9):
+        if j in [4]:
+            # Directed lagged links
+            link_assumptions[j] = {
+                (var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)
+            }
+        else:
+            link_assumptions[j] = {}
+
+    pcmci = PCMCI(dataframe=pcmci_df, cond_ind_test=cond_ind_test, verbosity=0)
+
+    results = pcmci.run_pcmci(
+        tau_min=min_tau,
+        tau_max=max_tau,
+        pc_alpha=pc_alpha,
+        alpha_level=dependence_threshold,
+        link_assumptions=link_assumptions,
+    )
+    q_matrix = pcmci.get_corrected_pvalues(
+        p_matrix=results["p_matrix"],
+        tau_min=min_tau,
+        tau_max=max_tau,
+        fdr_method="fdr_bh",
+        link_assumptions=link_assumptions,
+    )
+    reconstructed_graph = pcmci.get_graph_from_pmatrix(
+        p_matrix=q_matrix,
+        alpha_level=dependence_threshold,
+        tau_min=min_tau,
+        tau_max=max_tau,
+        link_assumptions=link_assumptions,
+    )
+
+    return reconstructed_graph, results["val_matrix"]
+
+
+def CaStLe_PC(
+    data: np.ndarray,
+    cond_ind_test: CondIndTest,
+    pc_alpha: float,
+    rows_inverted=False,
+    dependence_threshold=0.01,
+    dependencies_wrap=False,
+) -> tuple:
+    """The CaStLe algorithm implemented with PC for the parent-identification phase.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe-PCMCI.
+        cond_ind_test (CondIndTest): The conditional independence test to be used in the parent-identification phase.
+        pc_alpha (float): Significance level in PCMCI.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to False.
+        dependence_threshold (float, optional): Significance level at which the p_matrix from PCMCI is thresholded to get the graph. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    min_tau = 1
+    max_tau = 1
+
+    if dependencies_wrap:
+        concatenated_data = concatenate_timeseries_wrapping(
+            data, rows_inverted=rows_inverted, include_cell_index_column=False
+        )
+    else:
+        concatenated_data = concatenate_timeseries_nonwrapping(
+            data, rows_inverted=rows_inverted, include_cell_index_column=False
+        )
+    pcmci_df = pp.DataFrame(concatenated_data[:, :9])
+
+    # Only estimate parents of variable 4
+    link_assumptions = {}
+    for j in range(9):
+        if j in [4]:
+            # Directed lagged links
+            link_assumptions[j] = {
+                (var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)
+            }
+        else:
+            link_assumptions[j] = {}
+
+    pcmci = PCMCI(dataframe=pcmci_df, cond_ind_test=cond_ind_test, verbosity=0)
+
+    results = pcmci.run_pcalg(
+        tau_min=min_tau,
+        tau_max=max_tau,
+        pc_alpha=pc_alpha,
+        link_assumptions=link_assumptions,
+    )
+    q_matrix = pcmci.get_corrected_pvalues(
+        p_matrix=results["p_matrix"],
+        tau_min=min_tau,
+        tau_max=max_tau,
+        fdr_method="fdr_bh",
+        link_assumptions=link_assumptions,
+    )
+    reconstructed_graph = pcmci.get_graph_from_pmatrix(
+        p_matrix=q_matrix,
+        alpha_level=dependence_threshold,
+        tau_min=min_tau,
+        tau_max=max_tau,
+        link_assumptions=link_assumptions,
+    )
+
+    return reconstructed_graph, results["val_matrix"]
+
+
+def PC(
+    data: np.ndarray,
+    cond_ind_test: CondIndTest,
+    min_tau: int,
+    max_tau: int,
+    pc_alpha: float,
+    pval_threshold=0.01,
+) -> tuple:
+    """The PC algorithm for time series data.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe-PC.
+        cond_ind_test (CondIndTest): The conditional independence test to be used in the parent-identification phase.
+        pc_alpha (float): Significance level in PC.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to True.
+        dependence_threshold (float, optional): Significance level at which the p_matrix from PC is thresholded to get the graph. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    # Reshape data for input to PCMCI
+    if len(data.shape) > 3:
+        data = data[:, :, :, 0]  # only working with first variable for now
+
+    if len(data.shape) > 2:
+        data = data.reshape(
+            data.shape[0] * data.shape[1], data.shape[2]
+        )  # reshape to N^2xtime
+        data = data.transpose()  # Rows must be temporal
+    if data.shape[0] < data.shape[1]:
+        warnings.warn(
+            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+        )
+
+    pcmci_df = pp.DataFrame(data)
+
+    pcmci = PCMCI(dataframe=pcmci_df, cond_ind_test=cond_ind_test, verbosity=0)
+
+    results = pcmci.run_pcalg(
+        tau_min=min_tau,
+        tau_max=max_tau,
+        pc_alpha=pc_alpha,
+    )
+    q_matrix = pcmci.get_corrected_pvalues(
+        p_matrix=results["p_matrix"],
+        tau_min=min_tau,
+        tau_max=max_tau,
+        fdr_method="fdr_bh",
+    )
+    reconstructed_graph = pcmci.get_graph_from_pmatrix(
+        p_matrix=q_matrix,
+        alpha_level=pval_threshold,
+        tau_min=min_tau,
+        tau_max=max_tau,
+    )
+
+    return reconstructed_graph, results["val_matrix"]
+
+
+def PC_stable(
+    data: np.ndarray,
+    cond_ind_test: CondIndTest,
+    min_tau: int,
+    max_tau: int,
+    pc_alpha: float,
+) -> tuple:
+    """The PC algorithm for time series data.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe-PC.
+        cond_ind_test (CondIndTest): The conditional independence test to be used in the parent-identification phase.
+        pc_alpha (float): Significance level in PC.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to True.
+        dependence_threshold (float, optional): Significance level at which the p_matrix from PC is thresholded to get the graph. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    # Reshape data for input to PCMCI
+    if len(data.shape) > 3:
+        data = data[:, :, :, 0]  # only working with first variable for now
+
+    if len(data.shape) > 2:
+        data = data.reshape(
+            data.shape[0] * data.shape[1], data.shape[2]
+        )  # reshape to N^2xtime
+        data = data.transpose()  # Rows must be temporal
+    if data.shape[0] < data.shape[1]:
+        warnings.warn(
+            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+        )
+
+    pcmci_df = pp.DataFrame(data)
+
+    pcmci = PCMCI(dataframe=pcmci_df, cond_ind_test=cond_ind_test, verbosity=0)
+
+    results = pcmci.run_pc_stable(
+        tau_min=min_tau,
+        tau_max=max_tau,
+        pc_alpha=pc_alpha,
+    )
+    return results
