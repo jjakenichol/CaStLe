@@ -1,6 +1,4 @@
-# CaStLe
-
-#### **Ca**usal **S**pace-Time S**t**encil **Le**arning
+# CaStLe (**Ca**usal **S**pace-Time S**t**encil **Le**arning)
 
 This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Climate Science: A Local Stencil Learning Approach* by J. Jake Nichol, Micahel Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
 
