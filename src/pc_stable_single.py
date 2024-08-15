@@ -439,7 +439,7 @@ if __name__ == "__main__":
         return x
 
     DATA_PATH = (
-        "../../data/DSAVAR/10x10_250T_4.0sigma_0.8density_0.1minval_wMode-False.npy"
+        "PATH/TO/DATA/10x10_250T_4.0sigma_0.8density_0.1minval_wMode-False.npy"
     )
 
     with open(
@@ -503,7 +503,6 @@ if __name__ == "__main__":
     all_parents[4] = pcmci._run_pc_stable_single(
         4, pc_alpha=pc_alpha, max_combinations=100000000
     )
-    # all_parents[4] = pcmci._run_pc_stable_single(4, link_assumptions_j=_int_link_assumptions[4], pc_alpha=pc_alpha)
 
     # Make SCM and val_matrix for plotting
     dependence_threshold = 0.0001
