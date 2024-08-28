@@ -22,15 +22,15 @@ python benchmarking/test_PC.py --data_path path/to/data.npy --print --verbose --
 """
 
 import argparse
-import stencil_functions as sf
 import numpy as np
 import os
 import time
 import sys
 from tigramite.independence_tests.parcorr import ParCorr
 
-sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import stable_SCM_generator as scm_gen
+import stencil_functions as sf
 from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -71,7 +71,7 @@ alpha_level = 0.01
 if TIME_ALG:
     start_time = time.time()
 reconstructed_graph, val_matrix = sf.PC(
-    data, parcorr, pc_alpha=pc_alpha, dependence_threshold=alpha_level
+    data, parcorr, pc_alpha=pc_alpha, pval_threshold=alpha_level, min_tau=1, max_tau=1
 )
 if TIME_ALG:
     end_time = time.time()
