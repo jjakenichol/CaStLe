@@ -24,40 +24,44 @@ The data generated and used for our HSW-V, VAR, and PDE experiments are availabl
 
 [2] Tom Ehrmann, Benjamin Wagman, Diana Bull, Hunter York Brown, Benjamin Hillman, Kara Peterson, Laura Swiler, Jerry Watkins, and Joseph Hart. 2024. Identifying Northern Hemisphere Temperature Responses to the Mt. Pinatubo Eruption through Limited Variability Ensembles. To be submitted to Climate Dynamics 17, 13 (2024), 5087-5121. https://doi.org/10.5194/cd-17-5087-2024.
  
+## Installation Instructions
 
-## Setting Up the Environment
+To set up your environment with the necessary libraries, install the following packages using your preferred package manager (`conda` or `pip`):
 
-This project provides two ways to set up the environment: using Conda or Pip. Follow the instructions below based on your preference.
+- `python=3.7`, `3.8`, `3.9`, or `3.10`
+- `cartopy`
+- `causalnex`
+- `dask`
+- `matplotlib>=3.7.0`
+- `numpy<1.24,>=1.18`
+- `pandas`
+- `scipy>=1.10.0`
+- `seaborn>=0.12.2`
+- `statsmodels`
+- `xarray`
+- `numba==0.56.4`
+- `networkx>=3.0`
 
-### Using Conda
+The `clif` package is necessary for working with E3SM and HSW-V data:
 
-1. **Install Conda**: If you don't have Conda installed, you can download and install it from [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+```sh
+pip install git+https://github.com/sandialabs/clif.git
+```
 
-2. **Create the Environment**: Use the `conda_environment.yml` file to create the environment.
-    ```bash
-    conda env create -f conda_environment.yml
-    ```
+The `causalnex` package is necessary for running DYNOTEARS tests:
 
-3. **Activate the Environment**: After creating the environment, activate it.
-    ```bash
-    conda activate your_environment_name
-    ```
+```sh
+pip install git+https://github.com/mckinsey/causalnex.git
+```
 
-### Using Pip
+The `matlab_engine` package must be installed to generate Burgers PDE experiments:
+```sh
+cd "matlabroot\extern\engines\python"
+python setup.py install
+```
 
-1. **Install Python**: Ensure you have Python installed. You can download and install it from [here](https://www.python.org/downloads/).
+Finally, `Tigramite` is necessary for other causal discovery tests, and should be installed last, which can be found here: https://github.com/jakobrunge/tigramite.
 
-2. **Create a Virtual Environment**: Create and activate a virtual environment using `venv`.
-    ```bash
-    python -m venv myenv
-    source myenv/bin/activate  # On Windows use `myenv\Scripts\activate`
-    ```
-
-3. **Install Packages**: Use the `pip_requirements.txt` file to install the required packages.
-    ```bash
-    pip install -r pip_requirements.txt
-    ```
- 
 ## Using this Code
 
 ### Source Code
