@@ -22,15 +22,15 @@ python benchmarking/test_CaStLe_VAR.py --data_path path/to/data.npy --print --ve
 """
 
 import argparse
-import stencil_functions as sf
 import numpy as np
 import os
 import sys
 from statsmodels.tsa.api import VAR
 from tigramite.toymodels import structural_causal_processes
 
-sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import stable_SCM_generator as scm_gen
+import stencil_functions as sf
 from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()
@@ -73,9 +73,7 @@ def lin(x):
 
 
 ########### castle #############
-concatenated_data = sf.concatenate_timeseries_wrapping(
-    data, GRID_SIZE, GRID_SIZE, rows_inverted=True
-)
+concatenated_data = sf.concatenate_timeseries_wrapping(data, rows_inverted=True)
 
 # Fit VAR
 model = VAR(concatenated_data)
@@ -103,7 +101,7 @@ for i in range(coefficients.shape[0]):
         ]
 reconstructed_stencil_graph = structural_causal_processes.links_to_graph(SCM)
 all_parents = sf.get_parents(reconstructed_stencil_graph)
-reconstructed_full_graph = sf.get_expanded_graph(
+reconstructed_full_graph = sf.get_expanded_graph_from_parents(
     all_parents[4], GRID_SIZE, wrapping=False
 )
 

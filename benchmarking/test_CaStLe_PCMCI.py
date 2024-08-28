@@ -22,13 +22,12 @@ python benchmarking/test_CaStLe_PCMCI.py --data_path path/to/data.npy --print --
 
 import argparse
 import numpy as np
-import pandas as pd
 import os
-import stencil_functions as sf
 import sys
 
-sys.path.append(os.path.abspath(os.path.expanduser("~") + "..src/"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import stable_SCM_generator as scm_gen
+import stencil_functions as sf
 from graph_metrics import F1_score, get_graph_metrics
 from tigramite.independence_tests.parcorr import ParCorr
 
@@ -78,7 +77,7 @@ reconstructed_graph, val_matrix = sf.CaStLe_PCMCI(
 center_parents = sf.get_parents(
     reconstructed_graph, val_matrix=val_matrix, include_lagzero_parents=True
 )[4]
-reconstructed_full_graph = sf.get_expanded_graph(center_parents, GRID_SIZE)
+reconstructed_full_graph = sf.get_expanded_graph_from_parents(center_parents, GRID_SIZE)
 
 F1, P, R, TP, FP, FN, TN = F1_score(true_full_graph, reconstructed_full_graph)
 if VERBOSE:

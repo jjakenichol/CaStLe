@@ -21,15 +21,15 @@ python benchmarking/test_VAR_graphs.py --data_path path/to/data.npy --print --ve
 """
 
 import argparse
-import stencil_functions as sf
 import numpy as np
 import os
 import sys
 from statsmodels.tsa.api import VAR
 from tigramite.toymodels import structural_causal_processes
 
-sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import stable_SCM_generator as scm_gen
+import stencil_functions as sf
 from graph_metrics import F1_score, get_graph_metrics
 
 parser = argparse.ArgumentParser()

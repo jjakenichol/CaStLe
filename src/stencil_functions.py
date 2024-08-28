@@ -45,6 +45,7 @@ from tigramite.toymodels import structural_causal_processes
 from tigramite.pcmci import PCMCI
 import pc_stable_single
 import warnings
+import stable_SCM_generator as scmg
 
 
 def concatenate_timeseries_wrapping(
@@ -178,6 +179,237 @@ def concatenate_timeseries_nonwrapping(
     concatenated_data = np.array(concatenated_data).transpose()
 
     return concatenated_data
+
+
+def get_stencil_graph(
+    neighborhood_dependence_matrix, func=(lambda x: x), return_val_matrix=False
+):
+    """
+    Constructs a stencil graph from a neighborhood dependence matrix (NDM).
+
+    Args:
+        neighborhood_dependence_matrix (np.ndarray): A 2D numpy array representing the neighborhood dependence matrix.
+        func (callable, optional): A function to apply to the dependencies. Defaults to the identity function (lambda x: x).
+        return_val_matrix (bool, optional): If True, returns a value matrix along with the stencil graph. Defaults to False.
+
+    Returns:
+        np.ndarray: The stencil graph.
+        np.ndarray (optional): The value matrix if `return_val_matrix` is True.
+    """
+    stencil_center = 4
+    neighborhood_dependence_matrix = np.asarray(neighborhood_dependence_matrix)
+    ndm = neighborhood_dependence_matrix.flatten()
+    # Make structural causal model of NDM
+    SCM = {
+        i: [((j, -1), 0.0, func) for j in range(ndm.shape[0])]
+        for i in range(ndm.shape[0])
+    }
+
+    # for row in range(neighborhood_dependence_matrix.shape[0]):
+    SCM[stencil_center] = [((col, 0), ndm[col], func) for col in range(ndm.shape[0])]
+    SCM[stencil_center] = [((col, -1), ndm[col], func) for col in range(ndm.shape[0])]
+
+    stencil = structural_causal_processes.links_to_graph(SCM)
+
+    if return_val_matrix:
+        val_matrix = np.zeros(
+            (
+                neighborhood_dependence_matrix.shape[0] ** 2,
+                neighborhood_dependence_matrix.shape[1] ** 2,
+                2,
+            )
+        )
+        for row in range(val_matrix.shape[0]):
+            for col in range(val_matrix.shape[1]):
+                coefficient = SCM[row][col][1]
+                val_matrix[col, row, 1] = coefficient
+        return stencil, val_matrix
+    else:
+        return stencil
+
+
+def get_ndm(center_node_parents):
+    """
+    Constructs a neighborhood dependence matrix (NDM) from the parents of the center node.
+
+    Args:
+        center_node_parents (list of tuples): List of tuples representing the parents of the center node. Each tuple
+                                              contains (parent_index, lag, value).
+
+    Returns:
+        np.ndarray: A 3x3 numpy array representing the neighborhood dependence matrix.
+    """
+    # Determine if center_node_parents contains any parents
+    contains_parents = True
+    if len(center_node_parents) == 0:
+        contains_parents = False
+
+    coefficients = False
+    if contains_parents:
+        if max([len(val) for val in center_node_parents]) == 3:
+            coefficients = True
+    else:
+        coefficients = True
+
+    # Get NDM from identified stencil
+    if coefficients:
+        ndm = np.zeros((9))
+        for parent in center_node_parents:
+            ndm[parent[0]] = parent[2]
+        ndm = ndm.reshape((3, 3))
+    else:
+        ndm = np.zeros((9))
+        for parent in center_node_parents:
+            ndm[parent[0]] = 1.0
+        ndm = ndm.reshape((3, 3))
+    return ndm
+
+
+def get_parents(
+    graph, val_matrix=None, include_lagzero_parents=True, output_val_matrix=False
+):
+    """
+    Extracts parent nodes from a given graph and optionally returns their values from a value matrix.
+
+    Args:
+        graph (np.ndarray): A 3D numpy array representing the graph structure, where
+                            graph[i, j, tau] indicates the relationship between node i at time t and node j at time t+tau.
+        val_matrix (np.ndarray, optional): A 3D numpy array of the same shape as `graph` containing values (e.g., coefficients)
+                                           associated with the edges in the graph. Defaults to None.
+        include_lagzero_parents (bool, optional): If True, includes parents with zero lag (i.e., parents at the same time step).
+                                                  Defaults to True.
+        output_val_matrix (bool, optional): If True, includes the values from `val_matrix` in the output dictionary.
+                                            Defaults to False.
+
+    Returns:
+        dict: A dictionary where keys are node indices and values are lists of parent nodes. If `output_val_matrix` is True,
+              each parent node is represented as a tuple (parent_index, lag, value), otherwise as (parent_index, lag).
+    """
+    parents_dict = dict()
+    if val_matrix is not None:
+        assert (
+            graph.shape == val_matrix.shape
+        ), "graph and val_matrix shapes do not agree"
+    for j in range(graph.shape[0]):
+        # Get the good links
+        if include_lagzero_parents:
+            good_links = np.argwhere(
+                (graph[:, j, :] == "-->") | (graph[:, j, :] == "o-o")
+            )
+            # Build a dictionary from these links to their values
+            if val_matrix is not None:
+                links = {(i, -tau): val_matrix[i, j, abs(tau)] for i, tau in good_links}
+            else:
+                links = {(i, -tau): 1 for i, tau in good_links}
+        else:
+            good_links = np.argwhere(
+                (graph[:, j, 1:] == "-->") | (graph[:, j, 1:] == "o-o")
+            )
+            # Build a dictionary from these links to their values
+            if val_matrix is not None:
+                links = {
+                    (i, -tau - 1): val_matrix[i, j, abs(tau) + 1]
+                    for i, tau in good_links
+                }
+            else:
+                links = {(i, -tau - 1): 1 for i, tau in good_links}
+        # Sort by value
+        if output_val_matrix:
+            parents_dict[j] = [
+                (*link, links[link])
+                for link in sorted(
+                    links, key=(lambda x: np.abs(links.get(x))), reverse=True
+                )
+            ]
+        else:
+            parents_dict[j] = sorted(
+                links, key=(lambda x: np.abs(links.get(x))), reverse=True
+            )
+    return parents_dict
+
+
+def get_expanded_graph_from_parents(
+    center_node_parents, full_grid_dimension, wrapping=False
+):
+    """
+    Returns the expanded graph from the stencil, i.e., the stencil applied to all nodes in a NxN graph.
+
+    Args:
+        center_node_parents (list of tuples): List of the stencil's center node's parents - encodes the stencil.
+        full_grid_dimension (int): The dimension N in the NxN grid/graph.
+        wrapping (bool, optional): Whether the output expanded graph should have wrapping edges. Defaults to False.
+
+    Returns:
+        np.ndarray: The expanded graph.
+        np.ndarray (optional): The value matrix if coefficients are included in the center_node_parents.
+    """
+    # Determine if center_node_parents contains any parents
+    contains_parents = True
+    if len(center_node_parents) == 0:
+        contains_parents = False
+
+    coefficients = False
+    if contains_parents:
+        if max([len(val) for val in center_node_parents]) == 3:
+            coefficients = True
+    else:
+        coefficients = True
+
+    ndm = get_ndm(center_node_parents)
+
+    # Construct full graph from NDM of stencil
+    if wrapping:
+        dynamics_matrix = scmg.create_coefficient_matrix(ndm, full_grid_dimension)
+    else:
+        dynamics_matrix = scmg.create_nonwrapping_coefficient_matrix(
+            ndm, full_grid_dimension
+        )
+    if coefficients:
+        full_graph, val_matrix = scmg.get_graph_from_coefficient_matrix(
+            dynamics_matrix, return_val_matrix=True
+        )
+        return full_graph, val_matrix
+    else:
+        full_graph = scmg.get_graph_from_coefficient_matrix(
+            dynamics_matrix, return_val_matrix=False
+        )
+        return full_graph
+
+
+def get_expanded_graph_from_stencil_graph(
+    graph,
+    val_matrix,
+    full_grid_dimension,
+    include_lagzero_parents=False,
+    wrapping=False,
+):
+    """
+    Expands a stencil graph to a full NxN graph.
+
+    Args:
+        graph (np.ndarray): A 3D numpy array representing the stencil graph.
+        val_matrix (np.ndarray): A 3D numpy array of the same shape as `graph` containing values (e.g., coefficients)
+                                 associated with the edges in the graph.
+        full_grid_dimension (int): The dimension N in the NxN grid/graph.
+        include_lagzero_parents (bool, optional): If True, includes parents with zero lag (i.e., parents at the same time step).
+                                                  Defaults to False.
+        wrapping (bool, optional): Whether the output expanded graph should have wrapping edges. Defaults to False.
+
+    Returns:
+        np.ndarray: The expanded graph.
+        np.ndarray: The value matrix for the expanded graph.
+    """
+    node_parents = get_parents(
+        graph,
+        val_matrix=val_matrix,
+        include_lagzero_parents=include_lagzero_parents,
+        output_val_matrix=True,
+    )
+    center_node_parents = node_parents[4]
+    full_graph, full_val_matrix = get_expanded_graph_from_parents(
+        center_node_parents, full_grid_dimension=full_grid_dimension, wrapping=wrapping
+    )
+    return full_graph, full_val_matrix
 
 
 def CaStLe(

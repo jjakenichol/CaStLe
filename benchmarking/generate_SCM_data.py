@@ -21,8 +21,13 @@ python generate_SCM_data.py --t <number_of_time_samples> --grid_size <dimension_
 """
 
 import argparse
-import uuid
 import numpy as np
+import os
+import sys
+import uuid
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+
 import stable_SCM_generator as scm_gen
 
 parser = argparse.ArgumentParser()
@@ -38,7 +43,9 @@ args = parser.parse_args()
 
 T = args.t  # Number of time samples
 GRID_SIZE = args.grid_size  # Dimension of square grid
-DEPENDENCE_DENSITY = args.dependence_density  # Density of the desired coefficient matrix
+DEPENDENCE_DENSITY = (
+    args.dependence_density
+)  # Density of the desired coefficient matrix
 MIN_VALUE = args.min_value  # Minimum value of the coefficient matrix
 ERROR_SIGMA = args.error_sigma  # Standard deviation of the added noise in simulation
 ERROR_MEAN = 0  # Mean of the added noise in simulation
@@ -71,14 +78,27 @@ for t in range(1, T):
     for row in range(ROWS):
         for col in range(COLS):
             from_left = spatial_coefficients[1, 0] * data[row, col - 1, t - 1, 0]
-            from_right = spatial_coefficients[1, 2] * data[row, (col + 1) % ROWS, t - 1, 0]
+            from_right = (
+                spatial_coefficients[1, 2] * data[row, (col + 1) % ROWS, t - 1, 0]
+            )
             from_top = spatial_coefficients[0, 1] * data[row - 1, col, t - 1, 0]
-            from_bottom = spatial_coefficients[2, 1] * data[(row + 1) % ROWS, col, t - 1, 0]
+            from_bottom = (
+                spatial_coefficients[2, 1] * data[(row + 1) % ROWS, col, t - 1, 0]
+            )
 
-            from_top_left = spatial_coefficients[0, 0] * data[row - 1, col - 1, t - 1, 0]
-            from_top_right = spatial_coefficients[0, 2] * data[row - 1, (col + 1) % COLS, t - 1, 0]
-            from_bot_left = spatial_coefficients[2, 0] * data[(row + 1) % ROWS, col - 1, t - 1, 0]
-            from_bot_right = spatial_coefficients[2, 2] * data[(row + 1) % ROWS, (col + 1) % COLS, t - 1, 0]
+            from_top_left = (
+                spatial_coefficients[0, 0] * data[row - 1, col - 1, t - 1, 0]
+            )
+            from_top_right = (
+                spatial_coefficients[0, 2] * data[row - 1, (col + 1) % COLS, t - 1, 0]
+            )
+            from_bot_left = (
+                spatial_coefficients[2, 0] * data[(row + 1) % ROWS, col - 1, t - 1, 0]
+            )
+            from_bot_right = (
+                spatial_coefficients[2, 2]
+                * data[(row + 1) % ROWS, (col + 1) % COLS, t - 1, 0]
+            )
 
             from_self = spatial_coefficients[1, 1] * data[row, col, t - 1, 0]
 

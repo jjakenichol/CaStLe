@@ -29,7 +29,7 @@ from tigramite import data_processing as pp
 from tigramite.independence_tests.parcorr import ParCorr
 from tigramite.pcmci import PCMCI
 
-sys.path.append(os.path.abspath(os.path.expanduser("~") + "../src/"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 import stable_SCM_generator as scm_gen
 from graph_metrics import F1_score, get_graph_metrics
 
