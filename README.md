@@ -31,6 +31,7 @@ To set up your environment with the necessary libraries, install the following p
 - `python=3.9`,`3.10`
 - `cartopy`
 - `dask`
+- `dcor`
 - `matplotlib>=3.7.0`
 - `numpy<1.24,>=1.18`
 - `pandas`
@@ -42,7 +43,7 @@ To set up your environment with the necessary libraries, install the following p
 - `networkx>=3.0`
 
 ```sh
-conda install cartopy dask "matplotlib>=3.7.0" numpy pandas "scipy>=1.10.0" seaborn statsmodels xarray numba=0.56.4 "networkx>=3.0"
+conda install cartopy dask dcor "matplotlib>=3.7.0" numpy pandas "scipy>=1.10.0" seaborn statsmodels xarray numba=0.56.4 "networkx>=3.0"
 ```
 
 The `clif` package is necessary for working with E3SM and HSW-V data:
