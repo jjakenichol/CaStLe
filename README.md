@@ -28,7 +28,7 @@ The data generated and used for our HSW-V, VAR, and PDE experiments are availabl
 
 To set up your environment with the necessary libraries, install the following packages using your preferred package manager (`conda` or `pip`):
 
-- `python=3.7`, `3.8`, `3.9`, or `3.10`
+- `python=3.9`,`3.10`
 - `cartopy`
 - `causalnex`
 - `dask`
