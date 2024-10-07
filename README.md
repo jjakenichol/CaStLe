@@ -30,7 +30,6 @@ To set up your environment with the necessary libraries, install the following p
 
 - `python=3.9`,`3.10`
 - `cartopy`
-- `causalnex`
 - `dask`
 - `matplotlib>=3.7.0`
 - `numpy<1.24,>=1.18`
