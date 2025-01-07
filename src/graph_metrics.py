@@ -1,49 +1,65 @@
 """
-This script includes functions for computing graph metrics and evaluation measures related to causal graphs.
+graph_metrics.py
 
-Functions:
-- F1_score(true_graph, discovered_graph): Computes the F1 score, precision, recall, true positive count, false positive count, false negative count, and true negative count of a discovered graph relative to a reference graph.
-- false_discovery_rate(FP, TP): Computes the False Discovery Rate (FDR) given false positive (FP) and true positive (TP) counts.
-- get_graph_metrics(graph): Returns a set of graph metrics for both the summary and full timeseries graphs.
-- matthews_correlation_coefficient(TP, FP, FN, TN): Computes the Matthews correlation coefficient (MCC) between [-1, 1] given true positive (TP), false positive (FP), false negative (FN), and true negative (TN) counts.
+This script provides a set of functions to compute various metrics for evaluating the quality and characteristics of graphs, 
+particularly in the context of causal inference and machine learning. The metrics include the Matthews correlation coefficient (MCC), 
+F1 score, false discovery rate (FDR), and various graph structural metrics.
+
+Functions
+---------
+get_confusion_matrix(true_graph: np.ndarray, discovered_graph: np.ndarray) -> tuple
+    Calculate the confusion matrix for comparing a true graph with a discovered graph.
+
+F1_score(*, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None) -> tuple
+    Computes the F1 score of a given graph relative to a reference, "ground-truth" graph.
+
+false_discovery_rate(FP: int, TP: int) -> float
+    Computes the False Discovery Rate (FDR) given false positive (FP) and true positive (TP) counts.
+
+get_graph_metrics(graph: np.ndarray) -> tuple
+    Returns a set of graph metrics for both the summary and full timeseries graphs.
+
+matthews_correlation_coefficient(*, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None) -> float
+    Compute the Matthews correlation coefficient (MCC) (A.K.A. Phi coefficient).
 """
 
 import numpy as np
 
 
-def F1_score(true_graph, discovered_graph):
-    """Computes the F1 score of a given graph relative to a reference, "ground-truth" graph.
-
-    This function computes the true positive (TP), false positive (FP), and false negative (FN) of the test matrix given the reference matrix.
-    It uses these to compute precision (P) and recall (R), defined as:
-    P = TP / (TP + FP)
-    R = TP / (TP + FN)
-
-    The F1 score is then:
-    F1 = (2 * P * R) / (P + R)
+def get_confusion_matrix(true_graph: np.ndarray, discovered_graph: np.ndarray) -> tuple:
+    """
+    Calculate the confusion matrix for comparing a true graph with a discovered graph.
 
     Parameters
     ----------
-    true_graph : array of shape [N, N, tau_max+1]
-        a string array with links '-->' representing the reference/"ground-truth" graph.
-    discovered_graph : array of shape [N, N, tau_max+1]
-        a string array with links '-->' representing the graph to be measured/scored.
+    true_graph : np.ndarray
+        Array representing the true graph. Assumes the graph only contains empty strings ("") and existing forward links ("-->").
+    discovered_graph : np.ndarray
+        Array representing the discovered graph. Assumes the graph only contains empty strings ("") and existing forward links ("-->").
 
     Returns
     -------
     tuple
-        [0] the F1 score computed from precision and recall of the test matrix given the reference matrix.
-        [1] the precision.
-        [2] the recall.
-        [3] the true positive count.
-        [4] the false positive count.
-        [5] the false negative count.
-        [6] the true negative count. Not used for F1 score computation but useful to capture nontheless.
-    """
+        A tuple containing the counts of true positives, false positives, false negatives, true negatives.
 
-    assert (
-        true_graph.shape == discovered_graph.shape
-    ), "Graph shapes do not agree. true_graph.shape={}, reconstructed_full_graph.shape={}".format(
+    Raises
+    ------
+    AssertionError
+        If the shapes of true_graph and discovered_graph do not agree.
+
+    Notes
+    -----
+    The confusion matrix is calculated by comparing the links in the true graph with the links in the discovered graph.
+    True positives (TP) are the links that exist in both graphs.
+    False positives (FP) are the links that exist in the discovered graph but not in the true graph.
+    False negatives (FN) are the links that exist in the true graph but not in the discovered graph.
+    True negatives (TN) are the links that do not exist in either graph.
+
+    Missing links in the discovered graph are represented by empty strings ("").
+
+    If a truth condition is not met during the comparison, an error message is printed and the function returns -np.inf for all counts.
+    """
+    assert true_graph.shape == discovered_graph.shape, "Graph shapes do not agree. true_graph.shape={}, reconstructed_full_graph.shape={}".format(
         true_graph.shape, discovered_graph.shape
     )
 
@@ -70,6 +86,63 @@ def F1_score(true_graph, discovered_graph):
                     print("A truth condition was not met!")
                     return -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf
 
+    return TP, FP, FN, TN
+
+
+def F1_score(*, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None) -> tuple:
+    """
+    Computes the F1 score of a given graph relative to a reference, "ground-truth" graph.
+
+    This function computes the true positive (TP), false positive (FP), and false negative (FN) of the test matrix given the reference matrix.
+    It uses these to compute precision (P) and recall (R), defined as:
+    P = TP / (TP + FP)
+    R = TP / (TP + FN)
+
+    The F1 score is then:
+    F1 = (2 * P * R) / (P + R)
+
+    Parameters
+    ----------
+    true_graph : array of shape [N, N, tau_max+1], optional
+        The reference/"ground-truth" graph.
+    discovered_graph : array of shape [N, N, tau_max+1], optional
+        The graph to be measured/scored.
+    TP : int, optional
+        The true positive count.
+    FP : int, optional
+        The false positive count.
+    FN : int, optional
+        The false negative count.
+    TN : int, optional
+        The true negative count. Not used for F1 score computation but useful to capture nonetheless.
+
+    Returns
+    -------
+    tuple
+        [0] the F1 score computed from precision and recall of the test matrix given the reference matrix.
+        [1] the precision.
+        [2] the recall.
+        [3] the true positive count.
+        [4] the false positive count.
+        [5] the false negative count.
+        [6] the true negative count.
+
+    Example
+    -------
+    >>> true_graph = np.array([[["-->", ""], ["", "-->"]], [["", ""], ["-->", ""]]])
+    >>> discovered_graph = np.array([[["-->", ""], ["", "-->"]], [["", ""], ["", ""]]])
+    >>> F1, P, R, TP, FP, FN, TN = F1_score(true_graph, discovered_graph)
+    >>> print(F1, P, R, TP, FP, FN, TN)
+    0.8 1.0 0.6666666666666666 2 0 1 5
+    >>> F1, P, R, TP, FP, FN, TN = F1_score(TP=2, FP=0, FN=1, TN=3)
+    >>> print(F1, P, R, TP, FP, FN, TN)
+    0.8 1.0 0.6666666666666666 2 0 1 3
+    """
+    if true_graph is not None and discovered_graph is not None:
+        TP, FP, FN, TN = get_confusion_matrix(true_graph, discovered_graph)
+    else:
+        assert TP is not None and FP is not None and FN is not None and TN is not None, "Either (true_graph, discovered_graph) or (TP, FP, FN, TN) must be provided."
+
     if TP == 0:
         if (FP == 0) and (FN == 0):
             F1, P, R = 1, 1, 1
@@ -83,7 +156,7 @@ def F1_score(true_graph, discovered_graph):
     return F1, P, R, TP, FP, FN, TN
 
 
-def false_discovery_rate(FP, TP):
+def false_discovery_rate(FP: int, TP: int) -> float:
     """Computes the False Discovery Rate (FDR) given false positive (FP) and true positive (TP) counts.
 
     FDR is defined as:
@@ -107,7 +180,7 @@ def false_discovery_rate(FP, TP):
     return FP / (FP + TP)
 
 
-def get_graph_metrics(graph):
+def get_graph_metrics(graph: np.ndarray) -> tuple:
     """Returns a set of graph functions for both the summary and full timeseries graphs
 
     Parameters
@@ -174,11 +247,14 @@ def get_graph_metrics(graph):
     ]
 
 
-def matthews_correlation_coefficient(TP, FP, FN, TN):
-    """Compute the Matthews correlation coefficient (MCC) (A.K.A. Phi coefficient)
+def matthews_correlation_coefficient(
+    *, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None
+) -> float:
+    """
+    Compute the Matthews correlation coefficient (MCC) (A.K.A. Phi coefficient)
 
     In machine learning, it is used as a measure of the quality of binary (two-class) classifications.
-    In statistics, it is called the the phi coefficient (or mean square contingency coefficient and denoted by φ or rφ) is a measure of association for two binary variables.
+    In statistics, it is called the phi coefficient (or mean square contingency coefficient and denoted by φ or rφ) is a measure of association for two binary variables.
 
     Traditionally defined as:
     MCC = (TPxTN - FPxFN)/(sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN)))
@@ -191,20 +267,39 @@ def matthews_correlation_coefficient(TP, FP, FN, TN):
 
     Parameters
     ----------
-    TP : int
-        The true positive count
-    FP : int
-        The false positive count
-    FN : int
-        The false negative count
-    TN : int
-        The true negative count
+    true_graph : array of shape [N, N, tau_max+1], optional
+        The reference/"ground-truth" graph.
+    discovered_graph : array of shape [N, N, tau_max+1], optional
+        The graph to be measured/scored.
+    TP : int, optional
+        The true positive count.
+    FP : int, optional
+        The false positive count.
+    FN : int, optional
+        The false negative count.
+    TN : int, optional
+        The true negative count.
 
     Returns
     -------
     float
         The Matthews correlation coefficient between [-1, 1]
+
+    Example
+    -------
+    >>> true_graph = np.array([[["-->", ""], ["", "-->"]], [["", ""], ["-->", ""]]])
+    >>> discovered_graph = np.array([[["-->", ""], ["", "-->"]], [["", ""], ["", ""]]])
+    >>> MCC = matthews_correlation_coefficient(true_graph=true_graph, discovered_graph=discovered_graph)
+    >>> print(MCC)
+    0.7453559924999299
+    >>> MCC = matthews_correlation_coefficient(TP=2, FP=0, FN=1, TN=3)
+    >>> print(MCC)
+    0.7071067811865476
     """
+    if true_graph is not None and discovered_graph is not None:
+        TP, FP, FN, TN = get_confusion_matrix(true_graph, discovered_graph)
+    else:
+        assert TP is not None and FP is not None and FN is not None and TN is not None, "Either (true_graph, discovered_graph) or (TP, FP, FN, TN) must be provided."
 
     if TP == 0 and FP == 0:
         if FN == 0 and TN != 0:
@@ -214,8 +309,7 @@ def matthews_correlation_coefficient(TP, FP, FN, TN):
         elif FN != 0 and TN == 0:
             return -1.0
         else:
-            print("No conditions met!")
-            return -np.inf()
+            raise ValueError("No conditions met!")
     if TP == 0 and FN == 0:
         if FP == 0 and TN != 0:
             return 1.0
@@ -224,8 +318,7 @@ def matthews_correlation_coefficient(TP, FP, FN, TN):
         elif FP != 0 and TN == 0:
             return -1.0
         else:
-            print("No conditions met!")
-            return -np.inf()
+            raise ValueError("No conditions met!")
     if TN == 0 and FP == 0:
         if TP != 0 and FN == 0:
             return 1.0
@@ -234,8 +327,7 @@ def matthews_correlation_coefficient(TP, FP, FN, TN):
         elif TP == 0 and FN != 0:
             return -1.0
         else:
-            print("No conditions met!")
-            return -np.inf()
+            raise ValueError("No conditions met!")
     if TN == 0 and FN == 0:
         if TP != 0 and FP == 0:
             return 1.0
@@ -244,7 +336,6 @@ def matthews_correlation_coefficient(TP, FP, FN, TN):
         elif TP == 0 and FP != 0:
             return -1.0
         else:
-            print("No conditions met!")
-            return -np.inf()
+            raise ValueError("No conditions met!")
 
     return (TP * TN - FP * FN) / (np.sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)))
