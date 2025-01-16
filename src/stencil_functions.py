@@ -38,14 +38,17 @@ To run the PC-Stable algorithm:
 >>> results = PC_stable(data, cond_ind_test, min_tau=1, max_tau=1, pc_alpha=0.05)
 """
 
+import pc_stable_single
+import stable_SCM_generator as scmg
+
+import pandas as pd
 import numpy as np
+import warnings
+from causalnex.structure.dynotears import from_pandas_dynamic
 from tigramite import data_processing as pp
 from tigramite.independence_tests.independence_tests_base import CondIndTest
-from tigramite.toymodels import structural_causal_processes
 from tigramite.pcmci import PCMCI
-import pc_stable_single
-import warnings
-import stable_SCM_generator as scmg
+from tigramite.toymodels import structural_causal_processes
 
 
 def concatenate_timeseries_wrapping(data: np.ndarray, rows_inverted: bool, include_cell_index_column=False) -> np.ndarray:
@@ -375,7 +378,7 @@ def get_expanded_graph_from_stencil_graph(
     return full_graph, full_val_matrix
 
 
-def CaStLe(
+def CaStLe_PCstable(
     data: np.ndarray,
     cond_ind_test: CondIndTest,
     pc_alpha: float,
@@ -653,6 +656,45 @@ def CaStLe_PC(
     )
 
     return reconstructed_graph, results["val_matrix"]
+
+
+def CaStLe_DYNOTEARS(data: np.ndarray, rows_inverted=False, dependence_threshold=0.01, dependencies_wrap=False) -> tuple:
+    """The CaStLe algorithm implemented with DYNOTEARS for the parent-identification phase.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to False.
+        dependence_threshold (float, optional): fixed threshold for absolute edge weights. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    max_tau = 1
+    if dependencies_wrap:
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+    else:
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+
+    # format data into dataframe
+    col_names = ["" + str(i) for i in np.arange(concatenated_data.shape[1])]
+    df_castled = pd.DataFrame(data=concatenated_data, columns=col_names)
+
+    ## Prepare link assumptions
+    taboo_children = ["0", "1", "2", "3", "5", "6", "7", "8"]
+    taboo_edges = []  # (lag, from, to)
+    for i in col_names:
+        for j in col_names:
+            # Ban all links from lag 0, ie only allow lag1 -> lag0
+            taboo_edges.append((0, i, j))
+
+    ## fit model
+    structure_model_castled = from_pandas_dynamic(df_castled, p=max_tau, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children)
+
+    # Convert to graph
+    reconstructed_graph, val_matrix = scmg.get_graph_from_structure_model(structure_model_castled)
+
+    return reconstructed_graph, val_matrix
 
 
 def PC(
