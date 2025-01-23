@@ -26,13 +26,14 @@ import colorcet as cc
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib.artist import Artist
 from matplotlib.colors import ListedColormap
 from tigramite import plotting as tp
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 def plot_dataset_timeseries(dataset: np.ndarray, save_path: str = None, showlabels: bool = False, alpha: float = 1.0, linewidth: float = 2) -> sns.FacetGrid:
@@ -218,6 +219,55 @@ def plot_stencil(
     return fig, ax
 
 
+def compute_bounds(region_size: int, lat_min: int, lat_max: int, lon_min: int, lon_max: int) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+    """
+    Generates latitude and longitude bounds for regions based on the specified region size and geographic limits.
+
+    Parameters:
+    -----------
+    region_size : int
+        The size of each region. Must be a positive integer.
+    lat_min : int
+        The minimum latitude.
+    lat_max : int
+        The maximum latitude. Must be such that (lat_max - lat_min) is a multiple of region_size.
+    lon_min : int
+        The minimum longitude.
+    lon_max : int
+        The maximum longitude. Must be such that (lon_max - lon_min) is a multiple of region_size.
+
+    Returns:
+    --------
+    lat_bounds : list of tuples
+        The computed latitude bounds for each region.
+    lon_bounds : list of tuples
+        The computed longitude bounds for each region.
+
+    Raises:
+    -------
+    ValueError
+        If the region size is not positive or if the latitude/longitude ranges are not multiples of the region size.
+    """
+
+    # Validate parameters
+    if region_size <= 0:
+        raise ValueError("region_size must be a positive integer.")
+    if (lat_max - lat_min) % region_size != 0:
+        raise ValueError("The difference between lat_max and lat_min must be a multiple of region_size.")
+    if (lon_max - lon_min) % region_size != 0:
+        raise ValueError("The difference between lon_max and lon_min must be a multiple of region_size.")
+
+    # Compute latitude bounds
+    lat_bounds = [((lat - region_size), lat) for lat in range(lat_min + region_size, lat_max + region_size, region_size)]
+    lat_bounds.reverse()
+
+    # Compute longitude bounds
+    lon_bounds = [(lon - region_size, lon) for lon in range(lon_min + region_size, lon_max + region_size, region_size)]
+
+    # Return the bounds
+    return lat_bounds, lon_bounds
+
+
 def plot_heatmap_with_stencil(
     data_da: xr.DataArray,
     mark_source: bool = False,
@@ -235,6 +285,15 @@ def plot_heatmap_with_stencil(
     stencil_ax: Optional[plt.Axes] = None,
     graph: Optional[np.ndarray] = None,
     v_matrix: Optional[np.ndarray] = None,
+    annotate_lat_lon: bool = False,
+    annotation_size: int = 15,
+    show_gridlines: bool = True,
+    gridline_color: str = "gray",
+    gridline_alpha: float = 0.5,
+    gridline_linestyle: str = "--",
+    gridline_interval: Optional[Tuple[float, float]] = None,
+    show_lat_labels: bool = False,
+    show_lon_labels: bool = False,
 ) -> Tuple[plt.Figure, plt.Axes]:
     """
     Plots a heatmap and stencil on a map using the provided xarray DataArray.
@@ -273,6 +332,24 @@ def plot_heatmap_with_stencil(
         The stencil graph for plotting. If provided, it will be used to plot the stencil.
     v_matrix : numpy.ndarray, optional
         The stencil value matrix for plotting. If provided, it will be used to determine the color of the stencil links.
+    annotate_lat_lon : bool, optional
+        Whether to annotate the latitude and longitude lines. Default is False.
+    annotation_size : int, optional
+        The size of the latitude and longitude annotations. Default is 15.
+    show_gridlines : bool, optional
+        Whether to show the gridlines. Default is True.
+    gridline_color : str, optional
+        The color of the gridlines. Default is 'gray'.
+    gridline_alpha : float, optional
+        The transparency of the gridlines. Default is 0.5.
+    gridline_linestyle : str, optional
+        The linestyle of the gridlines. Default is '--'.
+    gridline_interval : tuple, optional
+        The interval between gridlines as a tuple (longitude_interval, latitude_interval). Default is None.
+    show_lat_labels : bool, optional
+        Whether to show the latitude labels. Default is False.
+    show_lon_labels : bool, optional
+        Whether to show the longitude labels. Default is False.
 
     Returns:
     --------
@@ -290,7 +367,7 @@ def plot_heatmap_with_stencil(
     if lat_bounds is not None and lon_bounds is not None:
         lat_min, lat_max = lat_bounds
         lon_min, lon_max = lon_bounds
-        lat_lon_clipper = clif.preprocessing.ClipTransform(dims=["lat", "lon"], bounds=[(lat_min, lat_max + 1), (lon_min, lon_max + 1)])
+        lat_lon_clipper = clif.preprocessing.ClipTransform(dims=["lat", "lon"], bounds=[(lat_min, lat_max), (lon_min, lon_max)])
         data_da = lat_lon_clipper.fit_transform(data_da)
 
     # Calculate spatial mean and value range if vmin and vmax are not provided
@@ -324,15 +401,36 @@ def plot_heatmap_with_stencil(
 
     # Plot heatmap
     heatmap_data = np.mean(data_arr, axis=2)
-    extent = [lons.min(), lons.max(), lats.min(), lats.max()]
+    extent = (lon_bounds[0], lon_bounds[1], lat_bounds[0], lat_bounds[1])
+    _lon = np.linspace(extent[0], extent[1], heatmap_data.shape[0] + 1)
+    _lat = np.linspace(extent[2], extent[3], heatmap_data.shape[1] + 1)
+    Lon, Lat = np.meshgrid(_lon, _lat)
     ax.set_extent(extent, crs=ccrs.PlateCarree())
-    hm = ax.pcolormesh(lons, lats, heatmap_data, vmin=vmin, vmax=vmax, cmap=heatmap_cmap, snap=False, alpha=1, rasterized=False)
+    hm = ax.pcolormesh(Lon, Lat, heatmap_data, vmin=vmin, vmax=vmax, cmap=heatmap_cmap, snap=False, alpha=1, rasterized=True, shading="auto")
     ax.coastlines(linewidth=2, color="black")
+
+    # Add gridlines and labels if annotate_lat_lon is True
+    if annotate_lat_lon:
+        gl = ax.gridlines(draw_labels=True, linewidth=2, color=gridline_color, alpha=gridline_alpha, linestyle=gridline_linestyle)
+        gl.top_labels = False
+        gl.right_labels = False
+        gl.left_labels = show_lat_labels
+        gl.bottom_labels = show_lon_labels
+        gl.xlabel_style = {"size": annotation_size, "color": "gray"}
+        gl.ylabel_style = {"size": annotation_size, "color": "gray"}
+        if not show_gridlines:
+            gl.xlines = False
+            gl.ylines = False
+        if gridline_interval is not None:
+            lon_interval, lat_interval = gridline_interval
+            gl.xlocator = mticker.FixedLocator(np.arange(plot_lon_bounds[0], plot_lon_bounds[1] + lon_interval, lon_interval))
+            gl.ylocator = mticker.FixedLocator(np.arange(plot_lat_bounds[0], plot_lat_bounds[1] + lat_interval, lat_interval))
 
     # Plot triangle over source if mark_source is True
     if mark_source:
-        if plot_lat_bounds[0] <= source_coords[0] <= plot_lat_bounds[1]:
-            if plot_lon_bounds[0] <= source_coords[1] <= plot_lon_bounds[1]:
+        source_plot_epsilon = max(abs(plot_lon_bounds[0] - plot_lon_bounds[1]), abs(plot_lat_bounds[0] - plot_lat_bounds[1]))
+        if plot_lat_bounds[0] - source_plot_epsilon <= source_coords[0] <= plot_lat_bounds[1] + source_plot_epsilon:
+            if plot_lon_bounds[0] - source_plot_epsilon <= source_coords[1] <= plot_lon_bounds[1] + source_plot_epsilon:
                 tri_vertices = [
                     (source_coords[1], source_coords[0] + source_marker_offset),
                     (source_coords[1] - source_marker_offset, source_coords[0] - source_marker_offset),
