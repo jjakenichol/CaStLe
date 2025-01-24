@@ -124,12 +124,13 @@ def concatenate_timeseries_nonwrapping(data: np.ndarray, rows_inverted: bool, in
     Returns:
         np.ndarray: The concatenated data of shape (M, 9) or (M, 10) if include_cell_index_column is True.
     """
-    GRID_SIZE = data.shape[0]
+    GRID_SIZE_ROW = data.shape[0]
+    GRID_SIZE_COL = data.shape[1]
 
     # create one cell buffer such that all cells evaluated have neighbors on all sides
-    ROW_RANGE = range(1, GRID_SIZE - 1)
+    ROW_RANGE = range(1, GRID_SIZE_ROW - 1)
     # create one cell buffer such that all cells evaluated have neighbors on all sides
-    COL_RANGE = range(1, GRID_SIZE - 1)
+    COL_RANGE = range(1, GRID_SIZE_COL - 1)
 
     if include_cell_index_column:
         concatenated_data = [[] for i in range(10)]

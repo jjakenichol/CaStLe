@@ -402,8 +402,10 @@ def plot_heatmap_with_stencil(
     # Plot heatmap
     heatmap_data = np.mean(data_arr, axis=2)
     extent = (lon_bounds[0], lon_bounds[1], lat_bounds[0], lat_bounds[1])
-    _lon = np.linspace(extent[0], extent[1], heatmap_data.shape[0] + 1)
-    _lat = np.linspace(extent[2], extent[3], heatmap_data.shape[1] + 1)
+    # _lon = np.linspace(extent[0], extent[1], heatmap_data.shape[0] + 1)
+    # _lat = np.linspace(extent[2], extent[3], heatmap_data.shape[1] + 1)
+    _lon = np.linspace(extent[0], extent[1], heatmap_data.shape[1] + 1)
+    _lat = np.linspace(extent[2], extent[3], heatmap_data.shape[0] + 1)
     Lon, Lat = np.meshgrid(_lon, _lat)
     ax.set_extent(extent, crs=ccrs.PlateCarree())
     hm = ax.pcolormesh(Lon, Lat, heatmap_data, vmin=vmin, vmax=vmax, cmap=heatmap_cmap, snap=False, alpha=1, rasterized=True, shading="auto")
