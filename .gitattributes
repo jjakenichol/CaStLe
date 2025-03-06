@@ -1,0 +1,2 @@
+data/sulfate_50hPa.nc filter=lfs diff=lfs merge=lfs -text
+data/AOD.nc filter=lfs diff=lfs merge=lfs -text

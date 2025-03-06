@@ -28,10 +28,10 @@ The data generated and used for our HSW-V, VAR, and PDE experiments are availabl
 
 To set up your environment with the necessary libraries, install the following packages using your preferred package manager (`conda` or `pip`):
 
-- `python=3.7`, `3.8`, `3.9`, or `3.10`
+- `python=3.9`,`3.10`
 - `cartopy`
-- `causalnex`
 - `dask`
+- `dcor`
 - `matplotlib>=3.7.0`
 - `numpy<1.24,>=1.18`
 - `pandas`
@@ -39,8 +39,13 @@ To set up your environment with the necessary libraries, install the following p
 - `seaborn>=0.12.2`
 - `statsmodels`
 - `xarray`
-- `numba==0.56.4`
+- `numba=0.56.4`
 - `networkx>=3.0`
+- `colorcet` # for plotting
+
+```sh
+conda install cartopy dask dcor "matplotlib>=3.7.0" numpy pandas "scipy>=1.10.0" seaborn statsmodels xarray numba=0.56.4 "networkx>=3.0"
+```
 
 The `clif` package is necessary for working with E3SM and HSW-V data:
 

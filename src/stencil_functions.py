@@ -38,19 +38,20 @@ To run the PC-Stable algorithm:
 >>> results = PC_stable(data, cond_ind_test, min_tau=1, max_tau=1, pc_alpha=0.05)
 """
 
-import numpy as np
-from tigramite import data_processing as pp
-from tigramite.independence_tests.independence_tests_base import CondIndTest
-from tigramite.toymodels import structural_causal_processes
-from tigramite.pcmci import PCMCI
 import pc_stable_single
-import warnings
 import stable_SCM_generator as scmg
 
+import pandas as pd
+import numpy as np
+import warnings
+from causalnex.structure.dynotears import from_pandas_dynamic
+from tigramite import data_processing as pp
+from tigramite.independence_tests.independence_tests_base import CondIndTest
+from tigramite.pcmci import PCMCI
+from tigramite.toymodels import structural_causal_processes
 
-def concatenate_timeseries_wrapping(
-    data: np.ndarray, rows_inverted: bool, include_cell_index_column=False
-) -> np.ndarray:
+
+def concatenate_timeseries_wrapping(data: np.ndarray, rows_inverted: bool, include_cell_index_column=False) -> np.ndarray:
     """Concatenates time series data in a wrapping manner.
 
     Args:
@@ -112,9 +113,7 @@ def concatenate_timeseries_wrapping(
     return concatenated_data
 
 
-def concatenate_timeseries_nonwrapping(
-    data: np.ndarray, rows_inverted: bool, include_cell_index_column=False
-) -> np.ndarray:
+def concatenate_timeseries_nonwrapping(data: np.ndarray, rows_inverted: bool, include_cell_index_column=False) -> np.ndarray:
     """Concatenates time series data in a non-wrapping manner.
 
     Args:
@@ -125,12 +124,13 @@ def concatenate_timeseries_nonwrapping(
     Returns:
         np.ndarray: The concatenated data of shape (M, 9) or (M, 10) if include_cell_index_column is True.
     """
-    GRID_SIZE = data.shape[0]
+    GRID_SIZE_ROW = data.shape[0]
+    GRID_SIZE_COL = data.shape[1]
 
     # create one cell buffer such that all cells evaluated have neighbors on all sides
-    ROW_RANGE = range(1, GRID_SIZE - 1)
+    ROW_RANGE = range(1, GRID_SIZE_ROW - 1)
     # create one cell buffer such that all cells evaluated have neighbors on all sides
-    COL_RANGE = range(1, GRID_SIZE - 1)
+    COL_RANGE = range(1, GRID_SIZE_COL - 1)
 
     if include_cell_index_column:
         concatenated_data = [[] for i in range(10)]
@@ -181,9 +181,7 @@ def concatenate_timeseries_nonwrapping(
     return concatenated_data
 
 
-def get_stencil_graph(
-    neighborhood_dependence_matrix, func=(lambda x: x), return_val_matrix=False
-):
+def get_stencil_graph(neighborhood_dependence_matrix, func=(lambda x: x), return_val_matrix=False):
     """
     Constructs a stencil graph from a neighborhood dependence matrix (NDM).
 
@@ -200,10 +198,7 @@ def get_stencil_graph(
     neighborhood_dependence_matrix = np.asarray(neighborhood_dependence_matrix)
     ndm = neighborhood_dependence_matrix.flatten()
     # Make structural causal model of NDM
-    SCM = {
-        i: [((j, -1), 0.0, func) for j in range(ndm.shape[0])]
-        for i in range(ndm.shape[0])
-    }
+    SCM = {i: [((j, -1), 0.0, func) for j in range(ndm.shape[0])] for i in range(ndm.shape[0])}
 
     # for row in range(neighborhood_dependence_matrix.shape[0]):
     SCM[stencil_center] = [((col, 0), ndm[col], func) for col in range(ndm.shape[0])]
@@ -265,9 +260,7 @@ def get_ndm(center_node_parents):
     return ndm
 
 
-def get_parents(
-    graph, val_matrix=None, include_lagzero_parents=True, output_val_matrix=False
-):
+def get_parents(graph, val_matrix=None, include_lagzero_parents=True, output_val_matrix=False):
     """
     Extracts parent nodes from a given graph and optionally returns their values from a value matrix.
 
@@ -287,50 +280,32 @@ def get_parents(
     """
     parents_dict = dict()
     if val_matrix is not None:
-        assert (
-            graph.shape == val_matrix.shape
-        ), "graph and val_matrix shapes do not agree"
+        assert graph.shape == val_matrix.shape, "graph and val_matrix shapes do not agree"
     for j in range(graph.shape[0]):
         # Get the good links
         if include_lagzero_parents:
-            good_links = np.argwhere(
-                (graph[:, j, :] == "-->") | (graph[:, j, :] == "o-o")
-            )
+            good_links = np.argwhere((graph[:, j, :] == "-->") | (graph[:, j, :] == "o-o"))
             # Build a dictionary from these links to their values
             if val_matrix is not None:
                 links = {(i, -tau): val_matrix[i, j, abs(tau)] for i, tau in good_links}
             else:
                 links = {(i, -tau): 1 for i, tau in good_links}
         else:
-            good_links = np.argwhere(
-                (graph[:, j, 1:] == "-->") | (graph[:, j, 1:] == "o-o")
-            )
+            good_links = np.argwhere((graph[:, j, 1:] == "-->") | (graph[:, j, 1:] == "o-o"))
             # Build a dictionary from these links to their values
             if val_matrix is not None:
-                links = {
-                    (i, -tau - 1): val_matrix[i, j, abs(tau) + 1]
-                    for i, tau in good_links
-                }
+                links = {(i, -tau - 1): val_matrix[i, j, abs(tau) + 1] for i, tau in good_links}
             else:
                 links = {(i, -tau - 1): 1 for i, tau in good_links}
         # Sort by value
         if output_val_matrix:
-            parents_dict[j] = [
-                (*link, links[link])
-                for link in sorted(
-                    links, key=(lambda x: np.abs(links.get(x))), reverse=True
-                )
-            ]
+            parents_dict[j] = [(*link, links[link]) for link in sorted(links, key=(lambda x: np.abs(links.get(x))), reverse=True)]
         else:
-            parents_dict[j] = sorted(
-                links, key=(lambda x: np.abs(links.get(x))), reverse=True
-            )
+            parents_dict[j] = sorted(links, key=(lambda x: np.abs(links.get(x))), reverse=True)
     return parents_dict
 
 
-def get_expanded_graph_from_parents(
-    center_node_parents, full_grid_dimension, wrapping=False
-):
+def get_expanded_graph_from_parents(center_node_parents, full_grid_dimension, wrapping=False):
     """
     Returns the expanded graph from the stencil, i.e., the stencil applied to all nodes in a NxN graph.
 
@@ -361,18 +336,12 @@ def get_expanded_graph_from_parents(
     if wrapping:
         dynamics_matrix = scmg.create_coefficient_matrix(ndm, full_grid_dimension)
     else:
-        dynamics_matrix = scmg.create_nonwrapping_coefficient_matrix(
-            ndm, full_grid_dimension
-        )
+        dynamics_matrix = scmg.create_nonwrapping_coefficient_matrix(ndm, full_grid_dimension)
     if coefficients:
-        full_graph, val_matrix = scmg.get_graph_from_coefficient_matrix(
-            dynamics_matrix, return_val_matrix=True
-        )
+        full_graph, val_matrix = scmg.get_graph_from_coefficient_matrix(dynamics_matrix, return_val_matrix=True)
         return full_graph, val_matrix
     else:
-        full_graph = scmg.get_graph_from_coefficient_matrix(
-            dynamics_matrix, return_val_matrix=False
-        )
+        full_graph = scmg.get_graph_from_coefficient_matrix(dynamics_matrix, return_val_matrix=False)
         return full_graph
 
 
@@ -406,13 +375,11 @@ def get_expanded_graph_from_stencil_graph(
         output_val_matrix=True,
     )
     center_node_parents = node_parents[4]
-    full_graph, full_val_matrix = get_expanded_graph_from_parents(
-        center_node_parents, full_grid_dimension=full_grid_dimension, wrapping=wrapping
-    )
+    full_graph, full_val_matrix = get_expanded_graph_from_parents(center_node_parents, full_grid_dimension=full_grid_dimension, wrapping=wrapping)
     return full_graph, full_val_matrix
 
 
-def CaStLe(
+def CaStLe_PCstable(
     data: np.ndarray,
     cond_ind_test: CondIndTest,
     pc_alpha: float,
@@ -443,14 +410,10 @@ def CaStLe(
     # Concatenate data according to locality to form the reduced rependence space
     if dependencies_wrap:
         # Concatenate data if the space is toroidal - i.e. neighborhoods wrap.
-        concatenated_data = concatenate_timeseries_wrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
     else:
         # Concatenate data if the space is not toroidal - i.e. neighborhoods wrap.
-        concatenated_data = concatenate_timeseries_nonwrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
 
     # Create TIGRAMITE DataFrame from the concatenated data
     pcmci_df = pp.DataFrame(concatenated_data[:, :9])
@@ -525,13 +488,9 @@ def CaStLe_PCMCI(
     max_tau = 1
 
     if dependencies_wrap:
-        concatenated_data = concatenate_timeseries_wrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
     else:
-        concatenated_data = concatenate_timeseries_nonwrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
     pcmci_df = pp.DataFrame(concatenated_data[:, :9])
 
     # Only estimate parents of variable 4
@@ -539,9 +498,7 @@ def CaStLe_PCMCI(
     for j in range(9):
         if j in [4]:
             # Directed lagged links
-            link_assumptions[j] = {
-                (var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)
-            }
+            link_assumptions[j] = {(var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)}
         else:
             link_assumptions[j] = {}
 
@@ -552,6 +509,71 @@ def CaStLe_PCMCI(
         tau_max=max_tau,
         pc_alpha=pc_alpha,
         alpha_level=dependence_threshold,
+        link_assumptions=link_assumptions,
+    )
+    q_matrix = pcmci.get_corrected_pvalues(
+        p_matrix=results["p_matrix"],
+        tau_min=min_tau,
+        tau_max=max_tau,
+        fdr_method="fdr_bh",
+        link_assumptions=link_assumptions,
+    )
+    reconstructed_graph = pcmci.get_graph_from_pmatrix(
+        p_matrix=q_matrix,
+        alpha_level=dependence_threshold,
+        tau_min=min_tau,
+        tau_max=max_tau,
+        link_assumptions=link_assumptions,
+    )
+
+    return reconstructed_graph, results["val_matrix"]
+
+
+def CaStLe_FullCI(
+    data: np.ndarray,
+    cond_ind_test: CondIndTest,
+    alpha_level: float,
+    rows_inverted=False,
+    dependence_threshold=0.01,
+    dependencies_wrap=False,
+) -> tuple:
+    """The CaStLe algorithm implemented with FullCI for the parent-identification phase.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe-PCMCI.
+        cond_ind_test (CondIndTest): The conditional independence test to be used in the parent-identification phase.
+        alpha_level (float): Significance level at which the p_matrix is thresholded to get graph.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to False.
+        dependence_threshold (float, optional): Significance level at which the p_matrix from PCMCI is thresholded to get the graph. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    min_tau = 1
+    max_tau = 1
+
+    if dependencies_wrap:
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+    else:
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+    pcmci_df = pp.DataFrame(concatenated_data[:, :9])
+
+    # Only estimate parents of variable 4
+    link_assumptions = {}
+    for j in range(9):
+        if j in [4]:
+            # Directed lagged links
+            link_assumptions[j] = {(var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)}
+        else:
+            link_assumptions[j] = {}
+
+    pcmci = PCMCI(dataframe=pcmci_df, cond_ind_test=cond_ind_test, verbosity=0)
+
+    results = pcmci.run_fullci(
+        tau_min=min_tau,
+        tau_max=max_tau,
+        alpha_level=alpha_level,
         link_assumptions=link_assumptions,
     )
     q_matrix = pcmci.get_corrected_pvalues(
@@ -597,13 +619,9 @@ def CaStLe_PC(
     max_tau = 1
 
     if dependencies_wrap:
-        concatenated_data = concatenate_timeseries_wrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
     else:
-        concatenated_data = concatenate_timeseries_nonwrapping(
-            data, rows_inverted=rows_inverted, include_cell_index_column=False
-        )
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
     pcmci_df = pp.DataFrame(concatenated_data[:, :9])
 
     # Only estimate parents of variable 4
@@ -611,9 +629,7 @@ def CaStLe_PC(
     for j in range(9):
         if j in [4]:
             # Directed lagged links
-            link_assumptions[j] = {
-                (var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)
-            }
+            link_assumptions[j] = {(var, -lag): "-?>" for var in range(9) for lag in range(1, max_tau + 1)}
         else:
             link_assumptions[j] = {}
 
@@ -643,6 +659,45 @@ def CaStLe_PC(
     return reconstructed_graph, results["val_matrix"]
 
 
+def CaStLe_DYNOTEARS(data: np.ndarray, rows_inverted=False, dependence_threshold=0.01, dependencies_wrap=False) -> tuple:
+    """The CaStLe algorithm implemented with DYNOTEARS for the parent-identification phase.
+
+    Args:
+        data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe.
+        rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to False.
+        dependence_threshold (float, optional): fixed threshold for absolute edge weights. Defaults to 0.01.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+
+    Returns:
+        tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
+    """
+    max_tau = 1
+    if dependencies_wrap:
+        concatenated_data = concatenate_timeseries_wrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+    else:
+        concatenated_data = concatenate_timeseries_nonwrapping(data, rows_inverted=rows_inverted, include_cell_index_column=False)
+
+    # format data into dataframe
+    col_names = ["" + str(i) for i in np.arange(concatenated_data.shape[1])]
+    df_castled = pd.DataFrame(data=concatenated_data, columns=col_names)
+
+    ## Prepare link assumptions
+    taboo_children = ["0", "1", "2", "3", "5", "6", "7", "8"]
+    taboo_edges = []  # (lag, from, to)
+    for i in col_names:
+        for j in col_names:
+            # Ban all links from lag 0, ie only allow lag1 -> lag0
+            taboo_edges.append((0, i, j))
+
+    ## fit model
+    structure_model_castled = from_pandas_dynamic(df_castled, p=max_tau, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children)
+
+    # Convert to graph
+    reconstructed_graph, val_matrix = scmg.get_graph_from_structure_model(structure_model_castled)
+
+    return reconstructed_graph, val_matrix
+
+
 def PC(
     data: np.ndarray,
     cond_ind_test: CondIndTest,
@@ -669,14 +724,10 @@ def PC(
         data = data[:, :, :, 0]  # only working with first variable for now
 
     if len(data.shape) > 2:
-        data = data.reshape(
-            data.shape[0] * data.shape[1], data.shape[2]
-        )  # reshape to N^2xtime
+        data = data.reshape(data.shape[0] * data.shape[1], data.shape[2])  # reshape to N^2xtime
         data = data.transpose()  # Rows must be temporal
     if data.shape[0] < data.shape[1]:
-        warnings.warn(
-            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
-        )
+        warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
 
     pcmci_df = pp.DataFrame(data)
 
@@ -728,14 +779,10 @@ def PC_stable(
         data = data[:, :, :, 0]  # only working with first variable for now
 
     if len(data.shape) > 2:
-        data = data.reshape(
-            data.shape[0] * data.shape[1], data.shape[2]
-        )  # reshape to N^2xtime
+        data = data.reshape(data.shape[0] * data.shape[1], data.shape[2])  # reshape to N^2xtime
         data = data.transpose()  # Rows must be temporal
     if data.shape[0] < data.shape[1]:
-        warnings.warn(
-            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
-        )
+        warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
 
     pcmci_df = pp.DataFrame(data)
 
