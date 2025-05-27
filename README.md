@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/831173446.svg)](https://doi.org/10.5281/zenodo.15530556)
 
-This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Earth Systems Science: A Local Stencil Learning Approach* by J. Jake Nichol, Michael Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
+This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Earth System Science: A Local Stencil Learning Approach* by J. Jake Nichol, Michael Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
 
 ### Abstract
 
