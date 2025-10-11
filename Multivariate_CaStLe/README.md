@@ -1,11 +1,23 @@
-# M-CaStLe: Multivariate CaStLe Toolbox
+# M-CaStLe: Multivariate CaStLe
 
-M-CaStLe (Multivariate CaStLe) is a Python toolkit for  
-1. generating synthetic multivariate spatio-temporal data on a grid,  
-2. representing local interactions via a “Moore neighborhood” stencil,  
-3. discovering causal structure in that reduced space via time series causal discovery,  
-4. mapping learned stencils back to a full global graph, and  
-5. computing evaluation metrics (F1, MCC, FDR, graph-level stats).
+TL;DR
+M-CaStLe is a multivariate extension of CaStLe for causal discovery in high-dimensional space–time systems, enabling robust identification of both spatial and inter-variable dynamics with applications to synthetic benchmarks and real-world datasets.
+
+## Introduction  
+Causal discovery in gridded space–time data is fundamentally challenging: the number of spatial locations often far exceeds the number of available time points, and multiple interacting variables can complicate both inference and interpretation. CaStLe (Nichol et al. 2025) addressed this “large-p, small-T” problem for univariate fields by exploiting locality (stationarity of a small Moore neighborhood) and a two-stage meta-algorithm (gathering local replicates + causal estimation). However, many scientific systems—from climate models to ecological networks—are inherently multivariate, with cross-variable couplings that the original CaStLe cannot capture.
+
+M-CaStLe extends CaStLe to N-variable fields by representing each grid-cell’s 3×3 Moore neighborhood over N variables as a single 9N-dimensional vector, then applying time series causal discovery algorithms under stencil-specific link assumptions to learn a 9N×9N local causal stencil. Once learned, that multivariate stencil can be “stitched” across every cell of a toroidal grid to reconstruct a global causal graph of size (grid²·N)². From this learned structure we extract  
+ • the multivariate causal **stencil graph** (9N×9N),  
+ • a compact **reaction graph** (N×N) of aggregated variable-to-variable effects, and  
+ • a **spatial summary** (9×9) of directional influence patterns.  
+
+This repository implements the full M-CaStLe workflow:  
+ • **Data generation** (spatiotemporal_SCM_data_generator.py) provides stable synthetic multivariate VAR/ADR-style benchmarks on toroidal grids.  
+ • **Algorithmic core** (mcastle_utils.py) converts coefficient arrays ↔ stencil graphs, wraps Tigramite’s PC/PCMCI in `mv_CaStLe_PC()`, and handles mapping between local and global graphs plus plotting utilities.  
+ • **Evaluation metrics** (causal_graph_metrics.py) computes confusion matrices, F1 scores, Matthews correlation, false discovery rate, and basic graph-structural statistics.  
+ • **Tutorial** (tutorial/MCaStLe_tutorial.pdf) walks through defining a ground-truth stencil, simulating data, learning stencils, visualizing results, and quantitatively evaluating precision/recall, MCC, and FDR.
+
+A ready-to-use `environment.yml` specifies all required packages (NumPy, SciPy, Matplotlib, xarray, Tigramite). Clone the repo, create the conda environment, and follow the tutorial to reproduce end-to-end multivariate spatio-temporal causal discovery with M-CaStLe.
 
 This repository contains three core modules under `src/`, plus a self-contained tutorial in PDF form under `tutorial/`.
 
