@@ -1,0 +1,13 @@
+name: mcastle
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - matplotlib
+  - xarray
+  - pip
+  - pip:
+      - tigramite
