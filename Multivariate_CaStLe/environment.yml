@@ -8,6 +8,7 @@ dependencies:
   - scipy
   - matplotlib
   - xarray
+  - networkx
   - pip
   - pip:
       - tigramite
