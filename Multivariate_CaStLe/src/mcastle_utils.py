@@ -1943,12 +1943,12 @@ def concatenate_timeseries_wrapping(data, rows_inverted, include_cell_index_colu
             else:
                 from_left = data[row, col - 1, :]
                 from_right = data[row, (col + 1) % rows, :]
-                from_top = data[row + 1, col, :]
-                from_bottom = data[(row - 1) % rows, col, :]
-                from_top_left = data[row + 1, col - 1, :]
-                from_top_right = data[row + 1, (col + 1) % cols, :]
-                from_bot_left = data[(row - 1) % rows, col - 1, :]
-                from_bot_right = data[(row - 1) % rows, (col + 1) % cols, :]
+                from_top = data[(row + 1) % rows, col, :]
+                from_bottom = data[row - 1, col, :]
+                from_top_left = data[(row + 1) % rows, col - 1, :]
+                from_top_right = data[(row + 1) % rows, (col + 1) % cols, :]
+                from_bot_left = data[row - 1, col - 1, :]
+                from_bot_right = data[row - 1, (col + 1) % cols, :]
                 from_self = data[row, col, :]
 
             concatenated_data[0].extend(from_top_left)
