@@ -273,8 +273,66 @@ def create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fi
     return dynamics_matrix_reshaper(global_dynamics_matrix)
 
 
+def compute_spectral_radius_robust(matrix, method="auto", max_iter=100, verbose=0):
+    """
+    Compute spectral radius with fallback methods for robustness.
+    """
+    if method == "standard" or method == "auto":
+        try:
+            eigenvalues, _ = LA.eig(matrix)
+            spectral_radius = np.max(np.abs(eigenvalues))
+            return spectral_radius, eigenvalues, "standard"
+        except LA.LinAlgError as e:
+            if verbose > 0:
+                print(f"LinAlgError in standard eigenvalue computation: {e}")
+                print("Falling back to power iteration method...")
+
+    if method == "power_iteration" or method == "auto":
+        try:
+            n = matrix.shape[0]
+            x = np.random.randn(n)
+            x = x / np.linalg.norm(x)
+
+            lambda_old = 0
+            for iteration in range(max_iter):
+                y = matrix @ x
+                lambda_new = np.linalg.norm(y)
+
+                if lambda_new < 1e-10:
+                    return 0.0, None, "power_iteration"
+
+                x = y / lambda_new
+
+                if abs(lambda_new - lambda_old) < 1e-6:
+                    if verbose > 1:
+                        print(f"Power iteration converged in {iteration+1} iterations")
+                    return lambda_new, None, "power_iteration"
+
+                lambda_old = lambda_new
+
+            if verbose > 1:
+                print(f"Power iteration reached max iterations ({max_iter})")
+            return lambda_new, None, "power_iteration"
+
+        except Exception as e:
+            if verbose > 0:
+                print(f"Power iteration failed: {e}")
+                print("Falling back to norm bound method...")
+
+    try:
+        frobenius_norm = LA.norm(matrix, "fro")
+        if verbose > 1:
+            print(f"Using Frobenius norm as conservative upper bound: {frobenius_norm}")
+        return frobenius_norm, None, "norm_bound"
+    except Exception as e:
+        if verbose > 0:
+            print(f"Even norm computation failed: {e}")
+        return np.max(np.abs(matrix)), None, "max_abs"
+
+
 def is_stable(matrix, verbose=0):
-    """Checks for numerical stability, i.e. if all eigenvalues of the given matrix are < 1.0
+    """
+    Checks for numerical stability, i.e. if all eigenvalues of the given matrix are < 1.0
 
     Parameters
     ----------
@@ -288,12 +346,16 @@ def is_stable(matrix, verbose=0):
     Boolean
         Whether or not the given matrix is stable
     """
-    eigenvalues, _ = LA.eig(matrix)
-    if verbose > 0:
-        print("eigenvalues:")
-        print(eigenvalues)
+    spectral_radius, eigenvalues, method = compute_spectral_radius_robust(matrix, method="auto", verbose=verbose)
 
-    return np.all(np.abs(eigenvalues) < 1.0)
+    if verbose > 0:
+        print(f"Stability check using method: {method}")
+        print(f"Spectral radius: {spectral_radius}")
+        if eigenvalues is not None:
+            print("eigenvalues:")
+            print(eigenvalues)
+
+    return spectral_radius < 1.0
 
 
 def flatten_array(arr):
@@ -559,6 +621,32 @@ def get_empty_coefficient_matrix(n_variables: int):
     return local_coefficients
 
 
+def validate_parameter_feasibility(density, min_value_threshold, min_val_scaler, n_variables, verbose=0):
+    """
+    Validate that parameters are likely to produce feasible stable configurations.
+    """
+    effective_min = min_value_threshold * min_val_scaler
+    feasibility_score = density * effective_min
+
+    if feasibility_score > 0.3:
+        warning = (
+            f"WARNING: Parameters may be too aggressive for stable configurations.\n"
+            f"  density={density:.3f}, min_value_threshold={min_value_threshold}, "
+            f"min_val_scaler={min_val_scaler}\n"
+            f"  Effective minimum coefficient: {effective_min:.3f}\n"
+            f"  Feasibility score: {feasibility_score:.3f} (> 0.3 is concerning)\n"
+            f"  This may lead to very long search times or failure to find stable configurations.\n"
+            f"  Consider: reducing density (< 0.5), reducing min_value_threshold (< 0.2), "
+            f"or reducing min_val_scaler (< 1.5)"
+        )
+        return False, warning
+    elif feasibility_score > 0.2:
+        warning = f"CAUTION: Parameters are moderately aggressive.\n" f"  Feasibility score: {feasibility_score:.3f}\n" f"  May take longer to find stable configurations."
+        return True, warning
+
+    return True, None
+
+
 def get_random_stable_coefficient_matrix(
     grid_size: int,
     n_variables: int,
@@ -566,6 +654,7 @@ def get_random_stable_coefficient_matrix(
     density: float = None,
     min_value_threshold: float = None,
     min_val_scaler: float = 1.0,
+    max_attempts: int = 1000,
     verbose=0,
 ):
     """
@@ -588,6 +677,8 @@ def get_random_stable_coefficient_matrix(
         The minimum absolute value threshold for the coefficients in the generated matrix. Coefficients with absolute values below this threshold will be considered too weak to contribute to the dynamics and will be adjusted accordingly.
     min_val_scaler : float, optional
         A scaling factor applied to `min_value_threshold` to determine the minimum value for generating random coefficients. This allows for control over the sparsity and magnitude of the coefficients in the generated matrix, by default 1.0.
+    max_attempts : int, optional
+        Maximum number of attempts to find stable configuration before raising error, by default 1000.
     verbose : int, optional
         Pass 1 to print the generated random local dependence matrix, pass 2 to also print the computed eigenvalues, by default 0.
 
@@ -603,7 +694,6 @@ def get_random_stable_coefficient_matrix(
     - If both `num_links` and `density` are provided, the function will exit with an error message prompting the user to choose one.
     - The stability of the generated matrix is determined by its eigenvalues, with additional checks and adjustments made based on the `min_value_threshold`.
     """
-    # Check for correct input arguments.
     if (num_links is not None) and (density is not None):
         print("Passing both a density and num_links is undefined, pass one or the other. density={}, num_links={}".format(density, num_links))
         sys.exit(1)
@@ -616,24 +706,33 @@ def get_random_stable_coefficient_matrix(
         assert density is not None and num_links is not None, "density={} and num_links={}. Must pass either density or num_links.".format(density, num_links)
     assert isinstance(min_value_threshold, float), f"min_value_threshold ({min_value_threshold}) must be passed as a float."
 
+    is_feasible, warning_msg = validate_parameter_feasibility(density, min_value_threshold, min_val_scaler, n_variables, verbose)
+
+    if warning_msg and verbose >= 0:
+        print("\n" + "=" * 70)
+        print(warning_msg)
+        print("=" * 70 + "\n")
+
     pass_condition = -1
-    # Loop until a stable matrix is found
-    while 1:
-        # Get a random sparse matrix from the distribution above and convert it to a large dynamics matrix
-        # local_coefficients = rndm(n_variables, 3*3*n_variables, density=density, random_state=rng, data_rvs=rvs)
-        # local_coefficients = local_coefficients.todense()
+    linalg_error_count = 0
+
+    if verbose >= 1:
+        print(f"Searching for stable coefficient matrix (max {max_attempts} attempts)...")
+
+    for attempt in range(max_attempts):
         local_coefficients = generate_random_matrix(n_variables, 3 * 3 * n_variables, density=density, min_value=min_val_scaler * min_value_threshold)
         min_value_actual = np.min(np.abs(local_coefficients[np.nonzero(local_coefficients)]))
         local_coefficients = reshape_multivariate_coefs(local_coefficients)
         dynamics_matrix = create_global_dynamics_matrix(local_coefficients, grid_size, n_variables=n_variables, fill_value=0.0)
 
-        eigenvalues, _ = LA.eig(dynamics_matrix)
-        operator_norm = np.max(np.abs(eigenvalues))
-
         try:
+            spectral_radius, eigenvalues, method = compute_spectral_radius_robust(dynamics_matrix, method="auto", verbose=verbose - 2)
+            operator_norm = spectral_radius
+
             if is_stable(dynamics_matrix, verbose - 2):
                 if min_value_actual >= min_value_threshold:
                     if verbose:
+                        print(f"\nFound stable configuration on attempt {attempt+1}")
                         print("No scaling is necessary.")
                         print("N = \n{}".format(local_coefficients))
                         print("N is stable: {}".format(is_stable(dynamics_matrix)))
@@ -651,6 +750,7 @@ def get_random_stable_coefficient_matrix(
 
                 if np.abs(min_value_threshold / min_value_actual * operator_norm) < 1:
                     if verbose:
+                        print(f"\nFound scalable configuration on attempt {attempt+1}")
                         print("Scaling.")
                         print("N = \n{}".format(local_coefficients))
                         print("N is stable: {}".format(is_stable(dynamics_matrix)))
@@ -692,7 +792,7 @@ def get_random_stable_coefficient_matrix(
                 min_value_actual = get_min_coef(local_coefficients)
                 max_scaling = min_value_threshold / min_value_actual
                 min_scaling = 1 / operator_norm
-                scaling = min_scaling  # random.uniform(min_scaling, max_scaling)
+                scaling = min_scaling
                 scaled_local_coefficients = local_coefficients * scaling
 
                 min_coef = get_min_coef(scaled_local_coefficients)
@@ -709,11 +809,49 @@ def get_random_stable_coefficient_matrix(
                         if verbose > 1:
                             print("Scaling with operator norm worked, but min_coef={}".format(min_coef))
 
-        except LA.LinAlgError:
-            print("Found LinAlgError, trying eigenvalue decomposition again.")
+        except LA.LinAlgError as e:
+            linalg_error_count += 1
+            if verbose >= 1 and linalg_error_count <= 3:
+                print(f"LinAlgError on attempt {attempt+1}: {e}")
+                if linalg_error_count == 3:
+                    print(f"(suppressing further LinAlgError messages...)")
             continue
 
+        if verbose >= 1 and (attempt + 1) % 100 == 0:
+            print(f"  ... {attempt+1} attempts completed, still searching...")
+
+    if pass_condition == -1:
+        error_msg = (
+            f"\n{'='*70}\n"
+            f"FAILURE: Could not find stable coefficient matrix after {max_attempts} attempts.\n"
+            f"\nParameters:\n"
+            f"  grid_size: {grid_size}\n"
+            f"  n_variables: {n_variables}\n"
+            f"  density: {density:.3f}\n"
+            f"  min_value_threshold: {min_value_threshold}\n"
+            f"  min_val_scaler: {min_val_scaler}\n"
+            f"  Effective minimum: {min_val_scaler * min_value_threshold:.3f}\n"
+            f"\nDiagnostics:\n"
+            f"  LinAlgErrors encountered: {linalg_error_count}\n"
+            f"  Feasibility score: {density * min_val_scaler * min_value_threshold:.3f}\n"
+            f"\nSuggestions:\n"
+            f"  1. Reduce density (try < 0.5)\n"
+            f"  2. Reduce min_value_threshold (try < 0.2)\n"
+            f"  3. Reduce min_val_scaler (try < 1.5)\n"
+            f"  4. Increase max_attempts if close to finding solution\n"
+            f"  5. Use smaller grid_size for testing\n"
+            f"\nNote: The dual constraint (spectral radius < 1 AND coefficients >= threshold)\n"
+            f"may be mathematically impossible with these parameters.\n"
+            f"{'='*70}\n"
+        )
+        raise ValueError(error_msg)
+
     if verbose >= 1:
+        print(f"\n{'='*70}")
+        print(f"SUCCESS: Found stable configuration!")
+        print(f"  Attempts required: {attempt + 1}")
+        print(f"  Pass condition: {pass_condition}")
+        print(f"  LinAlgErrors encountered: {linalg_error_count}")
         print("local coefficients:")
         print(local_coefficients)
         dynamics_matrix = create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fill_value=0.0)
@@ -723,6 +861,8 @@ def get_random_stable_coefficient_matrix(
         print("Max Eigenvalue={}".format(operator_norm))
         print("Min Coefficient={}".format(min_coef))
         print("Pass Condition={}".format(pass_condition))
+        print(f"{'='*70}\n")
+
     return local_coefficients
 
 
@@ -748,63 +888,37 @@ def generate_dataset(
     Simulates spatial data over time, given a set of parameters that define the spatial interactions and the dynamics of the system.
     Optionally generates and returns the spatial coefficients used in the simulation if they are not provided.
 
-    Parameters
-    ----------
-    T : int
-        The number of time steps for which to generate data.
-    grid_size : int
-        The size of the spatial grid (assumed square) for the simulation.
-    spatial_coefs : np.ndarray, optional
-        A pre-defined array of spatial coefficients. If not provided, they will be generated based on other parameters.
-    dependence_density : float, optional
-        The density of dependencies in the spatial coefficient matrix. Used if spatial_coefs is not provided.
-    num_links : int, optional
-        The number of links or dependencies to be considered in the spatial dynamics. Used if spatial_coefs is not provided.
-    num_variables : int, optional
-        The number of variables (or layers) in the spatial grid. Required if spatial_coefs is not provided.
-    coefficient_min_value_threshold : float, optional
-        The minimum value threshold for coefficients in the generated spatial coefficient matrix.
-    min_val_scaler : float, optional
-        A scaling factor applied to the minimum value threshold for generating coefficients. Defaults to 1.0.
-    error_sigma : float, optional
-        The standard deviation of the noise added to each cell at each time step. Defaults to 0.1.
-    error_mean : float, optional
-        The mean of the noise added to each cell at each time step. Defaults to 0.0.
-    initialize_randomly : bool, optional
-        Whether the dataset should be initialized randomly. If False, it is initialized at zero. Defaults to False.
-    detect_instability : bool, optional
-        If True, the function will check for instability in the generated data and attempt to regenerate coefficients if instability is detected. Defaults to False.
-    instability_threshold : int, optional
-        The threshold value beyond which the data is considered unstable. Used if detect_instability is True. Defaults to 1000.
-    return_coefs : bool, optional
-        If True, the function will return both the generated spatial coefficients and the data. Defaults to False.
-    random_seed : int, optional
-        Random seed for reproducibility. Controls coefficient generation, initialization, and noise.
-        If None, results will vary between runs. Defaults to None.
-    verbose : int, optional
-        Controls the verbosity of the function's output. A higher value results in more detailed messages. Defaults to 0.
+    Parameters:
+    - T (int): The number of time steps for which to generate data.
+    - grid_size (int): The size of the spatial grid (assumed square) for the simulation.
+    - spatial_coefs (np.ndarray, optional): A pre-defined array of spatial coefficients. If not provided, they will be generated based on other parameters.
+    - dependence_density (float, optional): The density of dependencies in the spatial coefficient matrix. Used if spatial_coefs is not provided.
+    - num_links (int, optional): The number of links or dependencies to be considered in the spatial dynamics. Used if spatial_coefs is not provided.
+    - num_variables (int, optional): The number of variables (or layers) in the spatial grid. Required if spatial_coefs is not provided.
+    - coefficient_min_value_threshold (float, optional): The minimum value threshold for coefficients in the generated spatial coefficient matrix.
+    - min_val_scaler (float, optional): A scaling factor applied to the minimum value threshold for generating coefficients. Defaults to 1.0.
+    - error_sigma (float, optional): The standard deviation of the noise added to each cell at each time step. Defaults to 0.1.
+    - error_mean (float, optional): The mean of the noise added to each cell at each time step. Defaults to 0.0.
+    - initialize_randomly (bool, optional): Whether the dataset should be initialized randomly. If False, it is initialized at zero. Defaults to False.
+    - detect_instability (bool, optional): If True, the function will check for instability in the generated data and attempt to regenerate coefficients if instability is detected. Defaults to False.
+    - instability_threshold (int, optional): The threshold value beyond which the data is considered unstable. Used if detect_instability is True. Defaults to 1000.
+    - return_coefs (bool, optional): If True, the function will return both the generated spatial coefficients and the data. Defaults to False.
+    - random_seed (int, optional): Random seed for reproducibility. Controls coefficient generation, initialization, and noise. If None, results will vary between runs. Defaults to None.
+    - verbose (int, optional): Controls the verbosity of the function's output. A higher value results in more detailed messages. Defaults to 0.
 
-    Returns
-    -------
-    np.ndarray or tuple
-        If return_coefs is False, returns an array of shape (num_variables, grid_size, grid_size, T) containing the generated data.
-        If return_coefs is True, returns a tuple where the first element is the spatial coefficients array and the second element is the data array.
+    Returns:
+    - np.ndarray or tuple: If return_coefs is False, returns an array of shape (num_variables, grid_size, grid_size, T) containing the generated data. If return_coefs is True, returns a tuple where the first element is the spatial coefficients array and the second element is the data array.
 
-    Notes
-    -----
+    Notes:
     - The function generates spatial data by simulating interactions across a grid over time, incorporating both spatial dependencies (defined by spatial_coefs or generated based on dependence_density and num_links) and random noise.
     - If spatial_coefs is not provided, the function will generate a stable coefficient matrix based on the provided parameters. This requires num_variables, dependence_density or num_links, and coefficient_min_value_threshold to be specified.
     - The function can detect and attempt to correct for instability in the generated data if detect_instability is set to True. This involves regenerating the spatial coefficients and restarting the data generation process if the data exceeds the instability_threshold.
     - The function's behavior and output can be customized using the optional parameters, allowing for control over the complexity and characteristics of the generated data.
-    - NEW: random_seed parameter allows for reproducible results. Set to an integer for reproducibility or None for random behavior.
     """
-
-    # Set random seed for reproducibility
     if random_seed is not None:
         np.random.seed(random_seed)
         random.seed(random_seed)
 
-    # Check for correct input arguments.
     if detect_instability:
         assert (
             (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and num_variables is not None
@@ -812,7 +926,6 @@ def generate_dataset(
             dependence_density, num_links, coefficient_min_value_threshold, min_val_scaler, num_variables
         )
 
-    # Check for correct input arguments.
     if spatial_coefs is None:
         assert (
             (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and min_val_scaler is not None and num_variables is not None
@@ -838,6 +951,7 @@ def generate_dataset(
             density=dependence_density,
             min_value_threshold=coefficient_min_value_threshold,
             min_val_scaler=min_val_scaler,
+            max_attempts=1000,
             verbose=verbose,
         )
     else:
@@ -849,12 +963,10 @@ def generate_dataset(
     exceeded_threshold = True
     while exceeded_threshold:
         exceeded_threshold = False
-        # Initialize data
         if initialize_randomly:
             data = np.random.randn(num_variables, ROWS, COLS, T)
         else:
             data = np.zeros((num_variables, ROWS, COLS, T))
-        # Run simulation
         for child_var in range(num_variables):
             for t in range(1, T):
                 for row in range(ROWS):
@@ -899,12 +1011,11 @@ def generate_dataset(
                             + from_bot_lefts
                             + from_bot_rights
                             + np.random.normal(error_mean, error_sigma)
-                        )  # increase sigma for higher magnitudes
+                        )
 
                         # To understand the break/continue structure below, see https://stackoverflow.com/a/654002
                         if detect_instability:
                             if data[child_var, row, col, t] > instability_threshold:
-                                # assert spatial_coefs is None, "Spatial coefficients passed are unstable."
                                 if verbose:
                                     print("Instability threshold {} exceeded, recalculating coefficients.".format(instability_threshold))
                                 spatial_coefs = get_random_stable_coefficient_matrix(
@@ -912,6 +1023,7 @@ def generate_dataset(
                                     n_variables=num_variables,
                                     density=dependence_density,
                                     min_value_threshold=coefficient_min_value_threshold,
+                                    max_attempts=1000,
                                     verbose=verbose,
                                 )
                                 if verbose:
