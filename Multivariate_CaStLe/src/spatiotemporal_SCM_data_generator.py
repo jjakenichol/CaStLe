@@ -734,45 +734,77 @@ def generate_dataset(
     num_links: int = None,
     num_variables: int = None,
     coefficient_min_value_threshold: float = None,
-    min_val_scaler=1.0,
-    error_sigma=0.1,
-    error_mean=0.0,
+    min_val_scaler: float = 1.0,
+    error_sigma: float = 0.1,
+    error_mean: float = 0.0,
     initialize_randomly: bool = False,
-    detect_instability=False,
-    instability_threshold=1000,
-    return_coefs=False,
-    verbose=0,
+    detect_instability: bool = False,
+    instability_threshold: float = 1000,
+    return_coefs: bool = False,
+    random_seed: int = None,
+    verbose: int = 0,
 ) -> np.ndarray:
     """
     Simulates spatial data over time, given a set of parameters that define the spatial interactions and the dynamics of the system.
     Optionally generates and returns the spatial coefficients used in the simulation if they are not provided.
 
-    Parameters:
-    - T (int): The number of time steps for which to generate data.
-    - grid_size (int): The size of the spatial grid (assumed square) for the simulation.
-    - spatial_coefs (np.ndarray, optional): A pre-defined array of spatial coefficients. If not provided, they will be generated based on other parameters.
-    - dependence_density (float, optional): The density of dependencies in the spatial coefficient matrix. Used if spatial_coefs is not provided.
-    - num_links (int, optional): The number of links or dependencies to be considered in the spatial dynamics. Used if spatial_coefs is not provided.
-    - num_variables (int, optional): The number of variables (or layers) in the spatial grid. Required if spatial_coefs is not provided.
-    - coefficient_min_value_threshold (float, optional): The minimum value threshold for coefficients in the generated spatial coefficient matrix.
-    - min_val_scaler (float, optional): A scaling factor applied to the minimum value threshold for generating coefficients. Defaults to 1.0.
-    - error_sigma (float, optional): The standard deviation of the noise added to each cell at each time step. Defaults to 0.1.
-    - error_mean (float, optional): The mean of the noise added to each cell at each time step. Defaults to 0.0.
-    - initialize_randomly (bool, optional): Whether the dataset should be initialized randomly. If False, it is initialized at zero. Defaults to False.
-    - detect_instability (bool, optional): If True, the function will check for instability in the generated data and attempt to regenerate coefficients if instability is detected. Defaults to False.
-    - instability_threshold (int, optional): The threshold value beyond which the data is considered unstable. Used if detect_instability is True. Defaults to 1000.
-    - return_coefs (bool, optional): If True, the function will return both the generated spatial coefficients and the data. Defaults to False.
-    - verbose (int, optional): Controls the verbosity of the function's output. A higher value results in more detailed messages. Defaults to 0.
+    Parameters
+    ----------
+    T : int
+        The number of time steps for which to generate data.
+    grid_size : int
+        The size of the spatial grid (assumed square) for the simulation.
+    spatial_coefs : np.ndarray, optional
+        A pre-defined array of spatial coefficients. If not provided, they will be generated based on other parameters.
+    dependence_density : float, optional
+        The density of dependencies in the spatial coefficient matrix. Used if spatial_coefs is not provided.
+    num_links : int, optional
+        The number of links or dependencies to be considered in the spatial dynamics. Used if spatial_coefs is not provided.
+    num_variables : int, optional
+        The number of variables (or layers) in the spatial grid. Required if spatial_coefs is not provided.
+    coefficient_min_value_threshold : float, optional
+        The minimum value threshold for coefficients in the generated spatial coefficient matrix.
+    min_val_scaler : float, optional
+        A scaling factor applied to the minimum value threshold for generating coefficients. Defaults to 1.0.
+    error_sigma : float, optional
+        The standard deviation of the noise added to each cell at each time step. Defaults to 0.1.
+    error_mean : float, optional
+        The mean of the noise added to each cell at each time step. Defaults to 0.0.
+    initialize_randomly : bool, optional
+        Whether the dataset should be initialized randomly. If False, it is initialized at zero. Defaults to False.
+    detect_instability : bool, optional
+        If True, the function will check for instability in the generated data and attempt to regenerate coefficients if instability is detected. Defaults to False.
+    instability_threshold : int, optional
+        The threshold value beyond which the data is considered unstable. Used if detect_instability is True. Defaults to 1000.
+    return_coefs : bool, optional
+        If True, the function will return both the generated spatial coefficients and the data. Defaults to False.
+    random_seed : int, optional
+        Random seed for reproducibility. Controls coefficient generation, initialization, and noise.
+        If None, results will vary between runs. Defaults to None.
+    verbose : int, optional
+        Controls the verbosity of the function's output. A higher value results in more detailed messages. Defaults to 0.
 
-    Returns:
-    - np.ndarray or tuple: If return_coefs is False, returns an array of shape (num_variables, grid_size, grid_size, T) containing the generated data. If return_coefs is True, returns a tuple where the first element is the spatial coefficients array and the second element is the data array.
+    Returns
+    -------
+    np.ndarray or tuple
+        If return_coefs is False, returns an array of shape (num_variables, grid_size, grid_size, T) containing the generated data.
+        If return_coefs is True, returns a tuple where the first element is the spatial coefficients array and the second element is the data array.
 
-    Notes:
+    Notes
+    -----
     - The function generates spatial data by simulating interactions across a grid over time, incorporating both spatial dependencies (defined by spatial_coefs or generated based on dependence_density and num_links) and random noise.
     - If spatial_coefs is not provided, the function will generate a stable coefficient matrix based on the provided parameters. This requires num_variables, dependence_density or num_links, and coefficient_min_value_threshold to be specified.
     - The function can detect and attempt to correct for instability in the generated data if detect_instability is set to True. This involves regenerating the spatial coefficients and restarting the data generation process if the data exceeds the instability_threshold.
     - The function's behavior and output can be customized using the optional parameters, allowing for control over the complexity and characteristics of the generated data.
+    - NEW: random_seed parameter allows for reproducible results. Set to an integer for reproducibility or None for random behavior.
     """
+
+    # Set random seed for reproducibility
+    if random_seed is not None:
+        np.random.seed(random_seed)
+        random.seed(random_seed)
+
+    # Check for correct input arguments.
     if detect_instability:
         assert (
             (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and num_variables is not None
@@ -782,7 +814,6 @@ def generate_dataset(
 
     # Check for correct input arguments.
     if spatial_coefs is None:
-        return_coefs = True
         assert (
             (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and min_val_scaler is not None and num_variables is not None
         ), "dependence_density={}, num_links={}, coefficient_min_value_threshold={}, min_val_scaler={}, num_variables={}".format(
@@ -843,7 +874,7 @@ def generate_dataset(
                             from_top_rights.append(spatial_coefs[child_var, 0, 2][parent_var] * data[parent_var, row - 1, (col + 1) % COLS, t - 1])
                             from_lefts.append(spatial_coefs[child_var, 1, 0][parent_var] * data[parent_var, row, col - 1, t - 1])
                             from_centers.append(spatial_coefs[child_var, 1, 1][parent_var] * data[parent_var, row, col, t - 1])
-                            from_rights.append(spatial_coefs[child_var, 1, 2][parent_var] * data[parent_var, row, (col + 1) % ROWS, t - 1])
+                            from_rights.append(spatial_coefs[child_var, 1, 2][parent_var] * data[parent_var, row, (col + 1) % COLS, t - 1])
                             from_bot_lefts.append(spatial_coefs[child_var, 2, 0][parent_var] * data[parent_var, (row + 1) % ROWS, col - 1, t - 1])
                             from_bottoms.append(spatial_coefs[child_var, 2, 1][parent_var] * data[parent_var, (row + 1) % ROWS, col, t - 1])
                             from_bot_rights.append(spatial_coefs[child_var, 2, 2][parent_var] * data[parent_var, (row + 1) % ROWS, (col + 1) % COLS, t - 1])
