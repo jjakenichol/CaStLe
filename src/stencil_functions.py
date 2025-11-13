@@ -659,14 +659,38 @@ def CaStLe_PC(
     return reconstructed_graph, results["val_matrix"]
 
 
-def CaStLe_DYNOTEARS(data: np.ndarray, rows_inverted=False, dependence_threshold=0.01, dependencies_wrap=False) -> tuple:
+def CaStLe_DYNOTEARS(
+    data: np.ndarray,
+    rows_inverted=False,
+    dependence_threshold=0.01,
+    dependencies_wrap=False,
+    lambda_w: float = None,
+    lambda_a: float = 0.01,
+    max_iter: int = 100,
+) -> tuple:
     """The CaStLe algorithm implemented with DYNOTEARS for the parent-identification phase.
 
     Args:
         data (np.ndarray): The data of shape (N, N, T) to be given to CaStLe.
         rows_inverted (bool, optional): Whether data rows are inverted. Inverted means the row above is (row-1). Defaults to False.
         dependence_threshold (float, optional): fixed threshold for absolute edge weights. Defaults to 0.01.
-        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e., the dependence structure is toroidal in the space. Defaults to False.
+        dependencies_wrap (bool, optional): Whether the dependencies sought in the data are wrapping - i.e.,
+            the dependence structure is toroidal in the space. Defaults to False.
+        lambda_w : float, optional
+            L1 regularization penalty for contemporaneous (lag-0) edges. Higher values
+            encourage sparser same-time-step relationships. In CaStLe, lag-0 edges
+            are banned via tabu_edges, so this mainly affects optimization dynamics.
+            Recommended: Set equal to lambda_a. Set equal to lambda_a if not passed.
+            Defaults to None.
+        lambda_a : float, optional
+            L1 regularization penalty for lagged (temporal) edges. **Primary tuning parameter.**
+            Controls sparsity of discovered causal structure. Higher values (0.05-0.1) yield
+            very sparse graphs with only strongest links; lower values (0.001-0.01) discover
+            more relationships including weaker inter-variable links. Defaults to 0.01.
+        max_iter : int, optional
+            Maximum iterations for DYNOTEARS dual ascent optimization. More iterations
+            improve convergence, especially with low regularization or many variables.
+            Increase to 200-500 if convergence warnings appear. Defaults to 100.
 
     Returns:
         tuple: tuple of the reconstructed string-graph and the value matrix containing coefficients: (graph, val_matrix).
@@ -690,7 +714,9 @@ def CaStLe_DYNOTEARS(data: np.ndarray, rows_inverted=False, dependence_threshold
             taboo_edges.append((0, i, j))
 
     ## fit model
-    structure_model_castled = from_pandas_dynamic(df_castled, p=max_tau, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children)
+    structure_model_castled = from_pandas_dynamic(
+        df_castled, p=max_tau, lambda_w=lambda_w, lambda_a=lambda_a, max_iter=max_iter, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children
+    )
 
     # Convert to graph
     reconstructed_graph, val_matrix = scmg.get_graph_from_structure_model(structure_model_castled)
