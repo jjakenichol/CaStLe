@@ -31,8 +31,11 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import sys
 import xarray as xr
+from causalnex.structure import StructureModel
+from causalnex.structure.dynotears import from_pandas_dynamic
 from tigramite import data_processing as pp
 from tigramite.pcmci import PCMCI
 from tigramite.independence_tests.independence_tests_base import CondIndTest
@@ -2314,6 +2317,77 @@ def build_link_assumptions(
     return link_assumptions
 
 
+def get_graph_from_structure_model(structure_model: StructureModel, include_val_matrix=True) -> Union[tuple, list]:
+    """
+    Convert a causalnex.structure.StructureModel to a string-graph and val_matrix in the style of the Tigramite library.
+
+    StructureModel inherits networkx's DiGraph, which this conversion relies upon.
+
+    Parameters
+    ----------
+    structure_model : causalnex.structure.StructureModel
+        Graph from CausalNex.
+    include_val_matrix : bool, optional
+        Whether to return a value matrix. If False, only the string-graph is returned. Default is True.
+
+    Returns
+    -------
+    Union[tuple, list]
+        A tuple of two lists (string-graph and float-graph) if include_val_matrix is True, or just a list (string-graph) if include_val_matrix is False.
+    """
+    parents_to_add = []
+    min_lag = 0
+    max_lag = 0
+    num_vars = 0
+    for item in structure_model.adjacency():
+        parent_variable = int(item[0].split("_lag")[0])
+        parent_lag = int(item[0].split("_lag")[-1])
+        children = [
+            (
+                child_val := int(key.split("_lag")[0]),
+                int(key.split("_lag")[1]),
+                value["weight"],
+            )
+            for key, value in item[1].items()
+        ]
+        if len(children) > 0:
+            parents_to_add.append((parent_variable, parent_lag, children))
+
+        if parent_lag < min_lag:
+            min_lag = parent_lag
+        if parent_lag > max_lag:
+            max_lag = parent_lag
+        if parent_variable >= num_vars:
+            num_vars = parent_variable + 1
+
+    #  (array of shape [N, N, tau_max+1])
+    graph = np.full((num_vars, num_vars, max_lag + 1), fill_value="", dtype="<U3")
+    if include_val_matrix:
+        val_matrix = np.zeros((num_vars, num_vars, max_lag + 1), dtype=float)
+    for parent in parents_to_add:
+        parent_var = parent[0]
+        parent_lag = parent[1]
+        for child in parent[2]:
+            child_var = child[0]
+            child_lag = child[1]
+            child_weight = child[2]
+            # lag = child_lag - parent_lag
+            lag = parent_lag - child_lag
+            if lag < 0:
+                raise ValueError(f"Computed negative lag: parent_lag={parent_lag}, child_lag={child_lag}")
+            graph[parent_var, child_var, lag] = "-->"
+            if parent_lag == 0:
+                graph[child_var, parent_var, 0] = "<--"  # <-- used because of what Tigramite does.
+            if include_val_matrix:
+                val_matrix[parent_var, child_var, lag] = child_weight
+                if parent_lag == 0:
+                    val_matrix[child_var, parent_var, 0] = child_weight
+    if include_val_matrix:
+        return graph, val_matrix
+    else:
+        return graph
+
+
 def mv_CaStLe_PC(
     data: np.ndarray,
     cond_ind_test: CondIndTest,
@@ -2518,3 +2592,150 @@ def mv_CaStLe_PC(
         return results, reduced_space
     else:
         return results
+
+
+def mv_CaStLe_DYNOTEARS(
+    data: np.ndarray,
+    rows_inverted: bool = False,
+    dependence_threshold: float = 0.01,
+    dependencies_wrap: bool = False,
+    allow_center_directed_links: bool = False,
+    lambda_w: float = None,
+    lambda_a: float = 0.01,
+    max_iter: int = 100,
+    verbose: int = 0,
+) -> tuple:
+    """
+    Multivariate CaStLe algorithm implemented with DYNOTEARS for parent identification.
+
+    This function extends CaStLe to handle multiple variables simultaneously by creating
+    a stencil graph over a Moore neighborhood for each variable. It learns causal relationships
+    from neighboring cells (in space and across variables) to the center cells.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Input data of shape (variable_n, X, Y, T) where:
+        - variable_n: number of variables/species
+        - X, Y: spatial dimensions (grid size)
+        - T: temporal dimension (time steps)
+    rows_inverted : bool, optional
+        Whether data rows are inverted (row index above is row-1). Defaults to False.
+    dependence_threshold : float, optional
+        Fixed threshold for absolute edge weights. Edges with weights below this
+        threshold are removed. Defaults to 0.01.
+    dependencies_wrap : bool, optional
+        Whether dependencies are wrapping (toroidal boundary conditions).
+        If True, edges wrap around the spatial grid. Defaults to False.
+    allow_center_directed_links : bool, optional
+        Whether to allow directed links between center nodes (intra-grid-cell dependencies).
+        If True, variables within the same spatial cell can have directed dependencies.
+        Defaults to False.
+    lambda_w : float, optional
+        L1 regularization penalty for contemporaneous (lag-0) edges. Higher values
+        encourage sparser same-time-step relationships. In mv_CaStLe, lag-0 edges
+        are banned via tabu_edges, so this mainly affects optimization dynamics.
+        Recommended: Set equal to lambda_a. Set equal to lambda_a if not passed.
+        Defaults to None.
+    lambda_a : float, optional
+        L1 regularization penalty for lagged (temporal) edges. **Primary tuning parameter.**
+        Controls sparsity of discovered causal structure. Higher values (0.05-0.1) yield
+        very sparse graphs with only strongest links; lower values (0.001-0.01) discover
+        more relationships including weaker inter-variable links. Defaults to 0.01.
+    max_iter : int, optional
+        Maximum iterations for DYNOTEARS dual ascent optimization. More iterations
+        improve convergence, especially with low regularization or many variables.
+        Increase to 200-500 if convergence warnings appear. Defaults to 100.
+    verbose : int, optional
+        Verbosity level. 0=silent, 1=progress messages. Defaults to 0.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - graph : np.ndarray
+            Reconstructed causal graph of shape (9*variable_n, 9*variable_n, 2)
+            where the third dimension represents [lag-0, lag-1] relationships.
+        - val_matrix : np.ndarray
+            Matrix of edge coefficients with same shape as graph.
+
+    Notes
+    -----
+    The function creates a stencil graph where:
+    - Nodes 0-8 represent the Moore neighborhood for variable 0
+    - Nodes 9-17 represent the Moore neighborhood for variable 1
+    - And so on for each variable
+    - Center nodes are at indices 4, 13, 22, ... (4 + 9*k for k in range(variable_n))
+
+    The DYNOTEARS algorithm learns a weighted adjacency matrix that represents
+    causal relationships, enforcing a DAG constraint through continuous optimization.
+
+    Examples
+    --------
+    >>> # Simple usage with 3 variables
+    >>> data = np.random.randn(3, 10, 10, 100)  # 3 vars, 10x10 grid, 100 timesteps
+    >>> graph, val_matrix = mv_CaStLe_DYNOTEARS(data, dependence_threshold=0.05)
+    """
+    assert len(data.shape) == 4, "data needs to have 4 dimensions (variable_n, X, Y, T)"
+    assert data.shape[1] == data.shape[2], "Spatial dimensions must be square"
+    if lambda_w is None:
+        lambda_w = lambda_a
+
+    variable_n = data.shape[0]
+    max_tau = 1
+
+    # Get multivariate reduced space
+    # This concatenates all variables' Moore neighborhoods into a single representation
+    reduced_space = get_MV_reduced_space(data=data, dependencies_wrap=dependencies_wrap, rows_inverted=rows_inverted)
+
+    if verbose:
+        print(f"Data concatenated into multivariate Moore neighborhood space (shape {reduced_space.shape})...")
+
+    # Format data into DataFrame
+    # Columns are named as: "0", "1", ..., "9*variable_n-1"
+    node_count = reduced_space.shape[1]
+    col_names = [str(i) for i in range(node_count)]
+    df_castled = pd.DataFrame(data=reduced_space, columns=col_names)
+
+    # Identify center nodes (one for each variable)
+    # Center nodes are at indices: 4, 13, 22, 31, ... (4 + 9*k)
+    center_nodes = [4 + 9 * k for k in range(variable_n)]
+    center_node_names = [str(node) for node in center_nodes]
+
+    # Prepare taboo children: all non-center nodes cannot be children
+    # DYNOTEARS learns parents of center nodes only
+    taboo_children = [str(i) for i in range(node_count) if i not in center_nodes]
+
+    # Prepare taboo edges
+    taboo_edges = []  # Format: (lag, from, to)
+
+    # Ban all lag-0 edges (only allow temporal dependencies from lag-1 to lag-0)
+    for i in col_names:
+        for j in col_names:
+            taboo_edges.append((0, i, j))
+
+    # Handle center-to-center (intra-cell) directed links
+    if not allow_center_directed_links:
+        # Ban directed edges between center nodes at lag-1
+        # (they can still have undirected/bidirectional relationships if discovered)
+        for i, center_i in enumerate(center_nodes):
+            for j, center_j in enumerate(center_nodes):
+                if i != j:
+                    # Ban directed temporal dependencies between different variables at same location
+                    taboo_edges.append((1, str(center_i), str(center_j)))
+
+    if verbose:
+        print(f"Running DYNOTEARS with {len(center_nodes)} center nodes and {len(taboo_edges)} taboo edges...")
+
+    # Fit DYNOTEARS model
+    structure_model_castled = from_pandas_dynamic(
+        df_castled, p=max_tau, lambda_w=lambda_w, lambda_a=lambda_a, max_iter=max_iter, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children
+    )
+
+    # Convert structure model to graph format
+    reconstructed_graph, val_matrix = get_graph_from_structure_model(structure_model_castled)
+
+    if verbose:
+        print("Stencil learned...")
+
+    return reconstructed_graph, val_matrix
