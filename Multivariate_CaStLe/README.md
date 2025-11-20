@@ -111,5 +111,5 @@ pip install numpy scipy matplotlib xarray tigramite
 - get_graph_metrics: basic network stats (node/edge counts, in/out degree)  
 - matthews_correlation_coefficient  
 
-### tutorial/MCaStLe_tutorial.pdf  
+### tutorial/MCaStLe_tutorial.ipynb
 Step-by-step demonstration of M-CaStLe: defining stencils, simulating data, discovering causal graphs, and computing metrics.
