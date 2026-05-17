@@ -19,19 +19,44 @@ This repository implements the full M-CaStLe workflow:
 
 A ready-to-use `environment.yml` specifies all required packages (NumPy, SciPy, Matplotlib, xarray, Tigramite). Clone the repo, create the conda environment, and follow the tutorial to reproduce end-to-end multivariate spatio-temporal causal discovery with M-CaStLe.
 
-This repository contains three core modules under `src/`, plus a self-contained tutorial in PDF form under `tutorial/`.
+This repository contains the full M-CaStLe source, experiment scripts, tutorials, and figure-reproduction notebooks.
 
 ## Repository structure
 
-• environment.yml: conda environment specification for installing all dependencies.
-
-• src/  
-  – mcastle_utils.py: core utilities for building, mapping, visualizing stencils; causal discovery wrapper (`mv_CaStLe_PC`), and helper functions (angle computations, graph mapping, etc.).  
-  – spatiotemporal_SCM_data_generator.py: functions to generate synthetic multivariate spatial-temporal data (SCM), ensure stability, create global dynamics matrices, etc.  
-  – causal_graph_metrics.py: confusion matrix, F1 score, false discovery rate, Matthews correlation coefficient, and simple graph-structural metrics.  
-
-• tutorial/  
-  – MCaStLe_tutorial.ipynb: end-to-end tutorial demonstrating workflow: define ground-truth stencil, simulate data, learn stencil, visualize, and evaluate.
+```
+Multivariate_CaStLe/
+├── environment.yml                    # conda environment specification
+├── src/                               # source modules and experiment scripts
+│   ├── mcastle_utils.py               # core M-CaStLe utilities
+│   ├── spatiotemporal_SCM_data_generator.py
+│   ├── causal_graph_metrics.py
+│   ├── naive_mcastle_utils.py         # Cartesian-CaStLe baseline
+│   ├── trad_CD_algs.py                # traditional causal discovery wrappers
+│   ├── ADRExperiment.py               # ADR PDE experiment class
+│   ├── matlabPDE.py                   # MATLAB PDE solver interface
+│   ├── helper_functions.py
+│   ├── test_MVCaStLe_PC.py            # VAR benchmark runners
+│   ├── test_MVCaStLe_PCMCI.py
+│   ├── test_MVCaStLe_DYNOTEARS.py
+│   ├── test_CartesianUCaStLe_PC.py    # Cartesian-CaStLe baseline runners
+│   ├── test_CartesianUCaStLe_PCMCI.py
+│   ├── test_CartesianUCaStLe_DYNOTEARS.py
+│   ├── chain_stencil_experiment.py
+│   └── test_generate_dateset.py
+├── tutorials/                         # interactive tutorials
+│   ├── MCaStLe_tutorial.ipynb
+│   ├── mcastle_vs_naive_comparison.ipynb
+│   ├── naive_mcastle_demo.ipynb
+│   └── mcastle_pc_timestep_scaling.ipynb
+├── paper/                             # figure-reproduction notebooks
+│   ├── figure3_var_benchmark.ipynb    # Figures 3 and 7
+│   └── figure4_figure11_adr.ipynb     # Figures 4, 10, and 11
+└── data/
+    └── figures/                       # pre-extracted CSVs for figure notebooks
+        ├── var_benchmark_data.csv
+        ├── angle_error2_data.csv
+        └── adr_reaction_f1_data.csv
+```
 
 ## Installation
 
@@ -47,8 +72,19 @@ If you do not have conda, you can install dependencies via pip:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install numpy scipy matplotlib xarray tigramite
+pip install numpy scipy matplotlib pandas xarray networkx tigramite causalnex
 ```
+
+## Reproducing paper figures
+
+The `paper/` directory contains notebooks that reproduce the paper figures using pre-extracted data from `data/figures/`. No large simulation outputs are required.
+
+| Notebook | Figures |
+|---|---|
+| `paper/figure3_var_benchmark.ipynb` | Fig. 3 (VAR benchmark F1/Precision/Recall), Fig. 7 (link extent) |
+| `paper/figure4_figure11_adr.ipynb` | Fig. 4 (ADR angle estimation), Fig. 10 (ADR reaction graph), Fig. 11 (F1 histogram) |
+
+Output PDFs and PNGs are written to `paper/figures/`.
 
 ## Quick start
 
@@ -111,5 +147,17 @@ pip install numpy scipy matplotlib xarray tigramite
 - get_graph_metrics: basic network stats (node/edge counts, in/out degree)  
 - matthews_correlation_coefficient  
 
-### tutorial/MCaStLe_tutorial.ipynb
-Step-by-step demonstration of M-CaStLe: defining stencils, simulating data, discovering causal graphs, and computing metrics.
+### src/naive_mcastle_utils.py
+Cartesian-CaStLe baseline: runs independent univariate CaStLe on each variable's spatial field, then combines intra-variable stencils with inter-variable causal links discovered by non-spatial PC/PCMCI/DYNOTEARS on spatially aggregated time series.
+
+### src/trad_CD_algs.py
+Wrappers for traditional (non-spatial) causal discovery algorithms used as baselines in the VAR benchmark.
+
+### src/ADRExperiment.py / src/matlabPDE.py
+Infrastructure for the advection-diffusion-reaction (ADR) PDE experiments. Requires MATLAB and the MATLAB Python engine.
+
+### tutorials/
+- **MCaStLe_tutorial.ipynb**: end-to-end demonstration of M-CaStLe.
+- **mcastle_vs_naive_comparison.ipynb**: side-by-side comparison of M-CaStLe and Cartesian-CaStLe.
+- **naive_mcastle_demo.ipynb**: standalone Cartesian-CaStLe demo.
+- **mcastle_pc_timestep_scaling.ipynb**: runtime scaling with number of time steps.
