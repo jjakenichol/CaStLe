@@ -1,8 +1,7 @@
 """
 Multivariate CaStLe-Stencil Spatial Graph Mapping, Visualization, and Causal Discovery Utilities
 
-Author: J. Jake Nichol
-Email: jefnich@sandia.gov
+Authors: Anonymous
 
 Abstract:
 This script offers a suite of functions for manipulating, mapping, visualizing spatial graphs, and performing causal discovery in multivariate space-time datasets. Designed to work with multivariate spatial models, particularly those on grid-based layouts, it transforms local spatial relationships into comprehensive graph structures for visualization and analysis. The utilities extend to causal discovery, allowing for the inference of causal relationships between variables across a spatial grid over time.
