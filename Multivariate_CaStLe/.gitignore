@@ -1,5 +1,7 @@
-# Data — hosted externally, not in repo
-data/
+# Large simulation data — hosted externally
+data/replicates/
+data/mcastle_results/
+data/naive_results/
 
 # Python artifacts
 __pycache__/
