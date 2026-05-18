@@ -14,9 +14,14 @@ import sys
 import time
 
 import mcastle_utils as ms
-from causal_graph_metrics import F1_score, get_graph_metrics, matthews_correlation_coefficient as mcc
+from causal_graph_metrics import (
+    F1_score,
+    get_graph_metrics,
+    matthews_correlation_coefficient as mcc,
+)
 
 import warnings
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -62,13 +67,15 @@ SAVE_PATH = os.path.join(SAVE_PATH_DIR, RESULT_FILENAME + ".npy")
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
 # Compute true graph from the dataset's coefficients
-true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(spatial_coefficients)
+true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(
+    spatial_coefficients
+)
 true_full_graph = ms.map_stencil_graph_to_full_graph(true_stencil, grid_size=GRID_SIZE)
 
 # Compute stencil with CaStLe
 dependence_threshold = 0.0
 lambda_a = 0.1
-max_iter=100
+max_iter = 100
 start_time = time.time()
 reconstructed_stencil_graph, _ = ms.mv_CaStLe_DYNOTEARS(
     data=data,
@@ -77,16 +84,20 @@ reconstructed_stencil_graph, _ = ms.mv_CaStLe_DYNOTEARS(
     allow_center_directed_links=True,
     dependence_threshold=dependence_threshold,
     lambda_a=lambda_a,
-    max_iter=max_iter
+    max_iter=max_iter,
 )
 end_time = time.time()
 algorithm_time = end_time - start_time
 
 # Collect results
-reconstructed_full_graph = ms.map_stencil_graph_to_full_graph(reconstructed_stencil_graph, grid_size=GRID_SIZE)
+reconstructed_full_graph = ms.map_stencil_graph_to_full_graph(
+    reconstructed_stencil_graph, grid_size=GRID_SIZE
+)
 
 # Compute performance metrics
-F1, P, R, TP, FP, FN, TN = F1_score(true_graph=true_full_graph, discovered_graph=reconstructed_full_graph)
+F1, P, R, TP, FP, FN, TN = F1_score(
+    true_graph=true_full_graph, discovered_graph=reconstructed_full_graph
+)
 MCC = mcc(TP=TP, FP=FP, FN=FN, TN=TN)
 
 output_object = np.array(
@@ -107,7 +118,7 @@ output_object = np.array(
         algorithm_time,
         dependence_threshold,
         lambda_a,
-        DATA_FILENAME
+        DATA_FILENAME,
     ],
     dtype=object,
 )
@@ -121,7 +132,11 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
     print(f"Save path would be {SAVE_PATH}")
 if TIME_ALG:
-    print("Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time))
+    print(
+        "Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time)
+    )

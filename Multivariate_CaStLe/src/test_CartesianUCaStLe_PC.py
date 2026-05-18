@@ -30,7 +30,6 @@ import helper_functions as helper
 
 from naive_mcastle_utils import cartesian_ucastle_pc
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--fdr_method", type=str, required=False)

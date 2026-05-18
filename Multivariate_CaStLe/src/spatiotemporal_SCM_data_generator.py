@@ -37,7 +37,12 @@ def reshape_multivariate_coefs(coefs: np.ndarray) -> np.ndarray:
         # Loop over each coefficient position in the 3x3 (currently (9,)) array
         for coef_idx in range(new_arr.shape[0]):
             # Extract the parent coefficients for the current child variable and coefficient position
-            new_arr[coef_idx] = np.array([coefs[child_idx, parent_idx * 9 + coef_idx] for parent_idx in range(coefs.shape[0])])
+            new_arr[coef_idx] = np.array(
+                [
+                    coefs[child_idx, parent_idx * 9 + coef_idx]
+                    for parent_idx in range(coefs.shape[0])
+                ]
+            )
         coef_list.append(new_arr.reshape((3, 3)))
     return np.array(coef_list)
 
@@ -212,7 +217,17 @@ def dynamics_matrix_reshaper(six_dim_array: np.ndarray) -> np.ndarray:
                 for parent_var in range(num_variables):
                     for C_parent_row in range(num_rows):
                         for C_parent_col in range(num_colums):
-                            row_values = np.append(row_values, six_dim_array[child_var, parent_var, C_child_row, C_child_col, C_parent_row, C_parent_col])
+                            row_values = np.append(
+                                row_values,
+                                six_dim_array[
+                                    child_var,
+                                    parent_var,
+                                    C_child_row,
+                                    C_child_col,
+                                    C_parent_row,
+                                    C_parent_col,
+                                ],
+                            )
                 two_dim_array[two_dim_row_idx, :] = row_values
                 two_dim_row_idx += 1
 
@@ -222,7 +237,9 @@ def dynamics_matrix_reshaper(six_dim_array: np.ndarray) -> np.ndarray:
     return sorted_two_dim_array.astype(six_dim_array[0, 0, 0, 0, 0, 0].dtype)
 
 
-def create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fill_value=None):
+def create_global_dynamics_matrix(
+    local_coefficients, grid_size, n_variables, fill_value=None
+):
     """A mapping function that generates a (grid_size**2, grid_size**2) size matrix from a given list of (3, 3) matrices.
 
     The given list of (3, 3) matrices are local dependence coefficient matrices that determine the dependence of
@@ -246,9 +263,14 @@ def create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fi
     numpy.ndarray
         The (grid_size**2, grid_size**2) dynamics matrix between all grid cells.
     """
-    assert type(local_coefficients) == np.ndarray or type(local_coefficients) == np.matrix, "local_coefficients must be of type numpy.ndarray or numpy.matrix"
+    assert (
+        type(local_coefficients) == np.ndarray or type(local_coefficients) == np.matrix
+    ), "local_coefficients must be of type numpy.ndarray or numpy.matrix"
     fill_value = [fill_value] * n_variables
-    global_dynamics_matrix = full_with_arrays((n_variables, n_variables, grid_size, grid_size, grid_size, grid_size), fill_value)
+    global_dynamics_matrix = full_with_arrays(
+        (n_variables, n_variables, grid_size, grid_size, grid_size, grid_size),
+        fill_value,
+    )
 
     pad_width = grid_size - 3
     padded_coef_matrices = []
@@ -264,11 +286,25 @@ def create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fi
                 for C_child_col in range(grid_size):
                     for C_parent_row in range(grid_size):
                         for C_parent_col in range(grid_size):
-                            offset = (C_child_row - C_parent_row, C_child_col - C_parent_col)
-                            global_dynamics_matrix[child_var, parent_var, C_child_row, C_child_col, C_parent_row, C_parent_col] = padded_coef_matrices[child_var][
-                                (padded_coeff_center[0] - offset[0]) % padded_coef_matrices[child_var].shape[0],
-                                (padded_coeff_center[1] - offset[1]) % padded_coef_matrices[child_var].shape[1],
-                            ][parent_var]
+                            offset = (
+                                C_child_row - C_parent_row,
+                                C_child_col - C_parent_col,
+                            )
+                            global_dynamics_matrix[
+                                child_var,
+                                parent_var,
+                                C_child_row,
+                                C_child_col,
+                                C_parent_row,
+                                C_parent_col,
+                            ] = padded_coef_matrices[child_var][
+                                (padded_coeff_center[0] - offset[0])
+                                % padded_coef_matrices[child_var].shape[0],
+                                (padded_coeff_center[1] - offset[1])
+                                % padded_coef_matrices[child_var].shape[1],
+                            ][
+                                parent_var
+                            ]
 
     return dynamics_matrix_reshaper(global_dynamics_matrix)
 
@@ -346,7 +382,9 @@ def is_stable(matrix, verbose=0):
     Boolean
         Whether or not the given matrix is stable
     """
-    spectral_radius, eigenvalues, method = compute_spectral_radius_robust(matrix, method="auto", verbose=verbose)
+    spectral_radius, eigenvalues, method = compute_spectral_radius_robust(
+        matrix, method="auto", verbose=verbose
+    )
 
     if verbose > 0:
         print(f"Stability check using method: {method}")
@@ -486,7 +524,9 @@ def generate_chain_matrix(
         else:
             self_pos = position
         self_pos_index = self_pos[0] * 3 + self_pos[1]
-        coefs[n_variables - 1, (n_variables - 1) * 9 + self_pos_index] = coefficient_value
+        coefs[n_variables - 1, (n_variables - 1) * 9 + self_pos_index] = (
+            coefficient_value
+        )
 
     return coefs
 
@@ -532,12 +572,23 @@ def get_stable_coefficient_chain_matrix(
     numpy.ndarray
         A local dependence coefficient matrix with shape (3 * n_variables, 3 * n_variables), which is stable under the defined conditions and parameters.
     """
-    coefs = generate_chain_matrix(n_variables, coefficient_value, position, self_dependency_first, self_dependency_last, reverse_order)
+    coefs = generate_chain_matrix(
+        n_variables,
+        coefficient_value,
+        position,
+        self_dependency_first,
+        self_dependency_last,
+        reverse_order,
+    )
     reshaped_coefs = reshape_multivariate_coefs(coefs)
-    dynamics_matrix = create_global_dynamics_matrix(reshaped_coefs, grid_size, n_variables, fill_value=0.0)
+    dynamics_matrix = create_global_dynamics_matrix(
+        reshaped_coefs, grid_size, n_variables, fill_value=0.0
+    )
 
     if check_stability:
-        assert is_stable(dynamics_matrix, verbose=verbose), "Coefficients are not stable."
+        assert is_stable(
+            dynamics_matrix, verbose=verbose
+        ), "Coefficients are not stable."
     return reshaped_coefs
 
 
@@ -621,7 +672,9 @@ def get_empty_coefficient_matrix(n_variables: int):
     return local_coefficients
 
 
-def validate_parameter_feasibility(density, min_value_threshold, min_val_scaler, n_variables, verbose=0):
+def validate_parameter_feasibility(
+    density, min_value_threshold, min_val_scaler, n_variables, verbose=0
+):
     """
     Validate that parameters are likely to produce feasible stable configurations.
     """
@@ -641,7 +694,11 @@ def validate_parameter_feasibility(density, min_value_threshold, min_val_scaler,
         )
         return False, warning
     elif feasibility_score > 0.2:
-        warning = f"CAUTION: Parameters are moderately aggressive.\n" f"  Feasibility score: {feasibility_score:.3f}\n" f"  May take longer to find stable configurations."
+        warning = (
+            f"CAUTION: Parameters are moderately aggressive.\n"
+            f"  Feasibility score: {feasibility_score:.3f}\n"
+            f"  May take longer to find stable configurations."
+        )
         return True, warning
 
     return True, None
@@ -695,18 +752,34 @@ def get_random_stable_coefficient_matrix(
     - The stability of the generated matrix is determined by its eigenvalues, with additional checks and adjustments made based on the `min_value_threshold`.
     """
     if (num_links is not None) and (density is not None):
-        print("Passing both a density and num_links is undefined, pass one or the other. density={}, num_links={}".format(density, num_links))
+        print(
+            "Passing both a density and num_links is undefined, pass one or the other. density={}, num_links={}".format(
+                density, num_links
+            )
+        )
         sys.exit(1)
     elif num_links is not None:
         density = get_density(num_links=num_links, num_variables=n_variables)
-        assert density <= 1.0, "Too many links were requested for the requested number of variables, density ={}.".format(density)
+        assert (
+            density <= 1.0
+        ), "Too many links were requested for the requested number of variables, density ={}.".format(
+            density
+        )
     elif density is not None:
         pass
     else:
-        assert density is not None and num_links is not None, "density={} and num_links={}. Must pass either density or num_links.".format(density, num_links)
-    assert isinstance(min_value_threshold, float), f"min_value_threshold ({min_value_threshold}) must be passed as a float."
+        assert (
+            density is not None and num_links is not None
+        ), "density={} and num_links={}. Must pass either density or num_links.".format(
+            density, num_links
+        )
+    assert isinstance(
+        min_value_threshold, float
+    ), f"min_value_threshold ({min_value_threshold}) must be passed as a float."
 
-    is_feasible, warning_msg = validate_parameter_feasibility(density, min_value_threshold, min_val_scaler, n_variables, verbose)
+    is_feasible, warning_msg = validate_parameter_feasibility(
+        density, min_value_threshold, min_val_scaler, n_variables, verbose
+    )
 
     if warning_msg and verbose >= 0:
         print("\n" + "=" * 70)
@@ -717,16 +790,29 @@ def get_random_stable_coefficient_matrix(
     linalg_error_count = 0
 
     if verbose >= 1:
-        print(f"Searching for stable coefficient matrix (max {max_attempts} attempts)...")
+        print(
+            f"Searching for stable coefficient matrix (max {max_attempts} attempts)..."
+        )
 
     for attempt in range(max_attempts):
-        local_coefficients = generate_random_matrix(n_variables, 3 * 3 * n_variables, density=density, min_value=min_val_scaler * min_value_threshold)
-        min_value_actual = np.min(np.abs(local_coefficients[np.nonzero(local_coefficients)]))
+        local_coefficients = generate_random_matrix(
+            n_variables,
+            3 * 3 * n_variables,
+            density=density,
+            min_value=min_val_scaler * min_value_threshold,
+        )
+        min_value_actual = np.min(
+            np.abs(local_coefficients[np.nonzero(local_coefficients)])
+        )
         local_coefficients = reshape_multivariate_coefs(local_coefficients)
-        dynamics_matrix = create_global_dynamics_matrix(local_coefficients, grid_size, n_variables=n_variables, fill_value=0.0)
+        dynamics_matrix = create_global_dynamics_matrix(
+            local_coefficients, grid_size, n_variables=n_variables, fill_value=0.0
+        )
 
         try:
-            spectral_radius, eigenvalues, method = compute_spectral_radius_robust(dynamics_matrix, method="auto", verbose=verbose - 2)
+            spectral_radius, eigenvalues, method = compute_spectral_radius_robust(
+                dynamics_matrix, method="auto", verbose=verbose - 2
+            )
             operator_norm = spectral_radius
 
             if is_stable(dynamics_matrix, verbose - 2):
@@ -736,13 +822,24 @@ def get_random_stable_coefficient_matrix(
                         print("No scaling is necessary.")
                         print("N = \n{}".format(local_coefficients))
                         print("N is stable: {}".format(is_stable(dynamics_matrix)))
-                        print("min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(min_value_threshold, min_value_actual, operator_norm))
                         print(
-                            "Lowest scaled operator norm to achieve min_val_threshold = abs(min_value_threshold/min_value_actual*operator_norm) = {} <- must be less than 1.0".format(
-                                np.abs(min_value_threshold / min_value_actual * operator_norm)
+                            "min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(
+                                min_value_threshold, min_value_actual, operator_norm
                             )
                         )
-                    assert np.abs(min_value_threshold / min_value_actual * operator_norm) < 1, "min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(
+                        print(
+                            "Lowest scaled operator norm to achieve min_val_threshold = abs(min_value_threshold/min_value_actual*operator_norm) = {} <- must be less than 1.0".format(
+                                np.abs(
+                                    min_value_threshold
+                                    / min_value_actual
+                                    * operator_norm
+                                )
+                            )
+                        )
+                    assert (
+                        np.abs(min_value_threshold / min_value_actual * operator_norm)
+                        < 1
+                    ), "min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(
                         min_value_threshold, min_value_actual, operator_norm
                     )
                     pass_condition = 1
@@ -754,13 +851,24 @@ def get_random_stable_coefficient_matrix(
                         print("Scaling.")
                         print("N = \n{}".format(local_coefficients))
                         print("N is stable: {}".format(is_stable(dynamics_matrix)))
-                        print("min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(min_value_threshold, min_value_actual, operator_norm))
                         print(
-                            "Lowest scaled operator norm to achieve min_val_threshold = abs(min_value_threshold/min_value_actual*operator_norm) = {} <- must be less than 1.0".format(
-                                np.abs(min_value_threshold / min_value_actual * operator_norm)
+                            "min_value_threshold = {}, min_value_actual = {}, operator_norm = {}".format(
+                                min_value_threshold, min_value_actual, operator_norm
                             )
                         )
-                    assert np.abs(min_value_threshold / min_value_actual * operator_norm) < 1, "min_value_threshold = {}, min_value_actual = {},operator_norm= {}".format(
+                        print(
+                            "Lowest scaled operator norm to achieve min_val_threshold = abs(min_value_threshold/min_value_actual*operator_norm) = {} <- must be less than 1.0".format(
+                                np.abs(
+                                    min_value_threshold
+                                    / min_value_actual
+                                    * operator_norm
+                                )
+                            )
+                        )
+                    assert (
+                        np.abs(min_value_threshold / min_value_actual * operator_norm)
+                        < 1
+                    ), "min_value_threshold = {}, min_value_actual = {},operator_norm= {}".format(
                         min_value_threshold, min_value_actual, operator_norm
                     )
 
@@ -769,10 +877,19 @@ def get_random_stable_coefficient_matrix(
                     scaling = random.uniform(min_scaling, max_scaling)
 
                     if verbose:
-                        print("min scaling = {}, max scaling = {}, scaling = {}".format(min_scaling, max_scaling, scaling))
+                        print(
+                            "min scaling = {}, max scaling = {}, scaling = {}".format(
+                                min_scaling, max_scaling, scaling
+                            )
+                        )
 
                     scaled_local_coefficients = scaling * local_coefficients
-                    dynamics_matrix_ = create_global_dynamics_matrix(scaled_local_coefficients, grid_size, n_variables=n_variables, fill_value=0.0)
+                    dynamics_matrix_ = create_global_dynamics_matrix(
+                        scaled_local_coefficients,
+                        grid_size,
+                        n_variables=n_variables,
+                        fill_value=0.0,
+                    )
 
                     if verbose:
                         print("scaled_N = \n{}".format(scaled_local_coefficients))
@@ -784,7 +901,11 @@ def get_random_stable_coefficient_matrix(
                     if verbose:
                         eigenvalues_, _ = LA.eig(dynamics_matrix_)
                         scaled_operator_norm = np.max(np.abs(eigenvalues_))
-                        print("Operator norm of scaled_N = {}".format(scaled_operator_norm))
+                        print(
+                            "Operator norm of scaled_N = {}".format(
+                                scaled_operator_norm
+                            )
+                        )
                     pass_condition = 2
                     break
                 continue
@@ -796,18 +917,28 @@ def get_random_stable_coefficient_matrix(
                 scaled_local_coefficients = local_coefficients * scaling
 
                 min_coef = get_min_coef(scaled_local_coefficients)
-                scaled_dynamics_matrx = create_global_dynamics_matrix(scaled_local_coefficients, grid_size, n_variables, fill_value=0.0)
+                scaled_dynamics_matrx = create_global_dynamics_matrix(
+                    scaled_local_coefficients, grid_size, n_variables, fill_value=0.0
+                )
 
                 if is_stable(scaled_dynamics_matrx):
                     if min_coef > min_value_threshold:
                         if verbose > 1:
-                            print("Scaling with operator norm worked, and min_coef={}".format(min_coef))
+                            print(
+                                "Scaling with operator norm worked, and min_coef={}".format(
+                                    min_coef
+                                )
+                            )
                         local_coefficients = scaled_local_coefficients
                         pass_condition = 3
                         break
                     else:
                         if verbose > 1:
-                            print("Scaling with operator norm worked, but min_coef={}".format(min_coef))
+                            print(
+                                "Scaling with operator norm worked, but min_coef={}".format(
+                                    min_coef
+                                )
+                            )
 
         except LA.LinAlgError as e:
             linalg_error_count += 1
@@ -854,7 +985,9 @@ def get_random_stable_coefficient_matrix(
         print(f"  LinAlgErrors encountered: {linalg_error_count}")
         print("local coefficients:")
         print(local_coefficients)
-        dynamics_matrix = create_global_dynamics_matrix(local_coefficients, grid_size, n_variables, fill_value=0.0)
+        dynamics_matrix = create_global_dynamics_matrix(
+            local_coefficients, grid_size, n_variables, fill_value=0.0
+        )
         eigenvalues_, _ = LA.eig(dynamics_matrix)
         operator_norm = np.max(np.abs(eigenvalues_))
         min_coef = get_min_coef(local_coefficients)
@@ -921,27 +1054,50 @@ def generate_dataset(
 
     if detect_instability:
         assert (
-            (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and num_variables is not None
+            (dependence_density is not None or num_links is not None)
+            and coefficient_min_value_threshold is not None
+            and num_variables is not None
         ), "dependence_density={}, num_links={}, coefficient_min_value_threshold={}, min_val_scaler={}, num_variables={}".format(
-            dependence_density, num_links, coefficient_min_value_threshold, min_val_scaler, num_variables
+            dependence_density,
+            num_links,
+            coefficient_min_value_threshold,
+            min_val_scaler,
+            num_variables,
         )
 
     if spatial_coefs is None:
         assert (
-            (dependence_density is not None or num_links is not None) and coefficient_min_value_threshold is not None and min_val_scaler is not None and num_variables is not None
+            (dependence_density is not None or num_links is not None)
+            and coefficient_min_value_threshold is not None
+            and min_val_scaler is not None
+            and num_variables is not None
         ), "dependence_density={}, num_links={}, coefficient_min_value_threshold={}, min_val_scaler={}, num_variables={}".format(
-            dependence_density, num_links, coefficient_min_value_threshold, min_val_scaler, num_variables
+            dependence_density,
+            num_links,
+            coefficient_min_value_threshold,
+            min_val_scaler,
+            num_variables,
         )
-        assert (num_links is None) ^ (dependence_density is None), "Passing both a density and num_links is undefined, pass one or the other. density={}, num_links={}".format(
+        assert (num_links is None) ^ (
+            dependence_density is None
+        ), "Passing both a density and num_links is undefined, pass one or the other. density={}, num_links={}".format(
             dependence_density, num_links
         )
         if num_links is not None:
-            dependence_density = get_density(num_links=num_links, num_variables=num_variables)
-            assert dependence_density <= 1.0, "Too many links were requested for the requested number of variables, density ={}.".format(dependence_density)
+            dependence_density = get_density(
+                num_links=num_links, num_variables=num_variables
+            )
+            assert (
+                dependence_density <= 1.0
+            ), "Too many links were requested for the requested number of variables, density ={}.".format(
+                dependence_density
+            )
         elif dependence_density is not None:
             pass
         else:
-            assert dependence_density is not None and num_links is not None, "density={} and num_links={}. Must pass either density or num_links.".format(
+            assert (
+                dependence_density is not None and num_links is not None
+            ), "density={} and num_links={}. Must pass either density or num_links.".format(
                 dependence_density, num_links
             )
 
@@ -981,15 +1137,47 @@ def generate_dataset(
                         from_bottoms = []
                         from_bot_rights = []
                         for parent_var in range(num_variables):
-                            from_top_lefts.append(spatial_coefs[child_var, 0, 0][parent_var] * data[parent_var, row - 1, col - 1, t - 1])
-                            from_tops.append(spatial_coefs[child_var, 0, 1][parent_var] * data[parent_var, row - 1, col, t - 1])
-                            from_top_rights.append(spatial_coefs[child_var, 0, 2][parent_var] * data[parent_var, row - 1, (col + 1) % COLS, t - 1])
-                            from_lefts.append(spatial_coefs[child_var, 1, 0][parent_var] * data[parent_var, row, col - 1, t - 1])
-                            from_centers.append(spatial_coefs[child_var, 1, 1][parent_var] * data[parent_var, row, col, t - 1])
-                            from_rights.append(spatial_coefs[child_var, 1, 2][parent_var] * data[parent_var, row, (col + 1) % COLS, t - 1])
-                            from_bot_lefts.append(spatial_coefs[child_var, 2, 0][parent_var] * data[parent_var, (row + 1) % ROWS, col - 1, t - 1])
-                            from_bottoms.append(spatial_coefs[child_var, 2, 1][parent_var] * data[parent_var, (row + 1) % ROWS, col, t - 1])
-                            from_bot_rights.append(spatial_coefs[child_var, 2, 2][parent_var] * data[parent_var, (row + 1) % ROWS, (col + 1) % COLS, t - 1])
+                            from_top_lefts.append(
+                                spatial_coefs[child_var, 0, 0][parent_var]
+                                * data[parent_var, row - 1, col - 1, t - 1]
+                            )
+                            from_tops.append(
+                                spatial_coefs[child_var, 0, 1][parent_var]
+                                * data[parent_var, row - 1, col, t - 1]
+                            )
+                            from_top_rights.append(
+                                spatial_coefs[child_var, 0, 2][parent_var]
+                                * data[parent_var, row - 1, (col + 1) % COLS, t - 1]
+                            )
+                            from_lefts.append(
+                                spatial_coefs[child_var, 1, 0][parent_var]
+                                * data[parent_var, row, col - 1, t - 1]
+                            )
+                            from_centers.append(
+                                spatial_coefs[child_var, 1, 1][parent_var]
+                                * data[parent_var, row, col, t - 1]
+                            )
+                            from_rights.append(
+                                spatial_coefs[child_var, 1, 2][parent_var]
+                                * data[parent_var, row, (col + 1) % COLS, t - 1]
+                            )
+                            from_bot_lefts.append(
+                                spatial_coefs[child_var, 2, 0][parent_var]
+                                * data[parent_var, (row + 1) % ROWS, col - 1, t - 1]
+                            )
+                            from_bottoms.append(
+                                spatial_coefs[child_var, 2, 1][parent_var]
+                                * data[parent_var, (row + 1) % ROWS, col, t - 1]
+                            )
+                            from_bot_rights.append(
+                                spatial_coefs[child_var, 2, 2][parent_var]
+                                * data[
+                                    parent_var,
+                                    (row + 1) % ROWS,
+                                    (col + 1) % COLS,
+                                    t - 1,
+                                ]
+                            )
                         from_lefts = np.sum(from_lefts)
                         from_rights = np.sum(from_rights)
                         from_tops = np.sum(from_tops)
@@ -1017,7 +1205,11 @@ def generate_dataset(
                         if detect_instability:
                             if data[child_var, row, col, t] > instability_threshold:
                                 if verbose:
-                                    print("Instability threshold {} exceeded, recalculating coefficients.".format(instability_threshold))
+                                    print(
+                                        "Instability threshold {} exceeded, recalculating coefficients.".format(
+                                            instability_threshold
+                                        )
+                                    )
                                 spatial_coefs = get_random_stable_coefficient_matrix(
                                     grid_size,
                                     n_variables=num_variables,
@@ -1027,7 +1219,9 @@ def generate_dataset(
                                     verbose=verbose,
                                 )
                                 if verbose:
-                                    print("Coefficients recalculated. Attempting data generation again.")
+                                    print(
+                                        "Coefficients recalculated. Attempting data generation again."
+                                    )
                                 exceeded_threshold = True
                                 break
                     else:

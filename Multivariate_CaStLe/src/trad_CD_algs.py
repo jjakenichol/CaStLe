@@ -65,10 +65,14 @@ def PC(
         Dict[str, Any]: Dictionary containing the reconstructed graph and the value matrix with coefficients.
     """
     # Reshape data for input to tigramite
-    data = np.reshape(data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2]))
+    data = np.reshape(
+        data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2])
+    )
 
     if data.shape[0] < data.shape[1]:
-        warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
+        warnings.warn(
+            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+        )
 
     pcmci_df = pp.DataFrame(data)
 
@@ -81,7 +85,9 @@ def PC(
     )
     if fdr_method:
         if fdr_method == "bh":
-            fdr_method = "fdr_bh"  # Rename to conform to tigramite's expected convention.
+            fdr_method = (
+                "fdr_bh"  # Rename to conform to tigramite's expected convention.
+            )
         q_matrix = pcmci.get_corrected_pvalues(
             p_matrix=results["p_matrix"],
             tau_min=min_tau,
@@ -124,7 +130,9 @@ def PC_stable(
         Dict[str, Any]: Dictionary containing the results from the PC-stable algorithm, including the reconstructed graph and the value matrix with coefficients.
     """
     # Reshape data for input to tigramite: time x (all variables flattened)
-    data = np.reshape(data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2]))
+    data = np.reshape(
+        data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2])
+    )
 
     if data.shape[0] < data.shape[1]:
         warnings.warn("More columns than rows!")
@@ -206,10 +214,14 @@ def PCMCI_alg(
             - 'conf_matrix': Confidence intervals (if supported by the test)
     """
     # Reshape data for input to tigramite: time x (all variables flattened)
-    data = np.reshape(data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2]))
+    data = np.reshape(
+        data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2])
+    )
 
     if data.shape[0] < data.shape[1]:
-        warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
+        warnings.warn(
+            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+        )
 
     pcmci_df = pp.DataFrame(data)
 
@@ -224,7 +236,9 @@ def PCMCI_alg(
 
     if fdr_method:
         if fdr_method == "bh":
-            fdr_method = "fdr_bh"  # Rename to conform to tigramite's expected convention
+            fdr_method = (
+                "fdr_bh"  # Rename to conform to tigramite's expected convention
+            )
         q_matrix = pcmci.get_corrected_pvalues(
             p_matrix=results["p_matrix"],
             tau_min=min_tau,
@@ -243,7 +257,9 @@ def PCMCI_alg(
     return results
 
 
-def get_graph_from_structure_model(structure_model: StructureModel, include_val_matrix: bool = True) -> Union[tuple, list]:
+def get_graph_from_structure_model(
+    structure_model: StructureModel, include_val_matrix: bool = True
+) -> Union[tuple, list]:
     """
     Convert a causalnex.structure.StructureModel to a string-graph and val_matrix in the style of the Tigramite library.
 
@@ -307,7 +323,9 @@ def get_graph_from_structure_model(structure_model: StructureModel, include_val_
                 )
             graph[parent_var, child_var, lag] = "-->"
             if parent_lag == 0:
-                graph[child_var, parent_var, 0] = "<--"  # <-- used because of what Tigramite does.
+                graph[child_var, parent_var, 0] = (
+                    "<--"  # <-- used because of what Tigramite does.
+                )
             if include_val_matrix:
                 val_matrix[parent_var, child_var, lag] = child_weight
                 if parent_lag == 0:
@@ -347,10 +365,14 @@ def DYNOTEARS(
         Dict[str, Any]: Dictionary containing the reconstructed graph and the value matrix with coefficients.
     """
     # Reshape data for input to CausalNex: time x (all variables flattened)
-    data = np.reshape(data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2]))
+    data = np.reshape(
+        data, (data.shape[3], data.shape[0] * data.shape[1] * data.shape[2])
+    )
 
     if data.shape[0] < data.shape[1]:
-        warnings.warn("More columns than rows! Either there are more variables than observations, or you need to transpose the data.")
+        warnings.warn(
+            "More columns than rows! Either there are more variables than observations, or you need to transpose the data."
+        )
 
     # Create column names and DataFrame
     col_names = ["" + str(i) for i in np.arange(data.shape[1])]
@@ -366,7 +388,9 @@ def DYNOTEARS(
     )
 
     # Convert to Tigramite-style graph and val_matrix
-    graph, val_matrix = get_graph_from_structure_model(structure_model, include_val_matrix=True)
+    graph, val_matrix = get_graph_from_structure_model(
+        structure_model, include_val_matrix=True
+    )
 
     results = {
         "graph": graph,
@@ -377,7 +401,17 @@ def DYNOTEARS(
 
 
 def plot_multigrid_graph(
-    graph, val_matrix, var_names=None, fig=None, axs=None, grid_shape=(10, 10), figsize_per_panel=(4, 4), node_size=0.1, arrow_linewidth=1.0, arrowhead_size=20, link_threshold=None
+    graph,
+    val_matrix,
+    var_names=None,
+    fig=None,
+    axs=None,
+    grid_shape=(10, 10),
+    figsize_per_panel=(4, 4),
+    node_size=0.1,
+    arrow_linewidth=1.0,
+    arrowhead_size=20,
+    link_threshold=None,
 ):
     """
     Plot causal graphs for multi-variable gridded data in panel layout.
@@ -422,7 +456,12 @@ def plot_multigrid_graph(
 
     # Create figure with V×V subplots
     if not fig or axs is None:
-        fig, axs = plt.subplots(V, V, figsize=(figsize_per_panel[0] * V, figsize_per_panel[1] * V), constrained_layout=True)
+        fig, axs = plt.subplots(
+            V,
+            V,
+            figsize=(figsize_per_panel[0] * V, figsize_per_panel[1] * V),
+            constrained_layout=True,
+        )
         if V == 1:
             axs = np.array([[axs]])
         elif V > 1 and axs.ndim == 1:
@@ -492,11 +531,28 @@ def plot_multigrid_graph(
             if target_var == 0:
                 ax.set_title(f"{var_names[source_var]}", fontsize=10, fontweight="bold")
             if source_var == 0:
-                ax.set_ylabel(f"{var_names[target_var]}", fontsize=10, fontweight="bold", rotation=0, ha="right", va="center", labelpad=10)
+                ax.set_ylabel(
+                    f"{var_names[target_var]}",
+                    fontsize=10,
+                    fontweight="bold",
+                    rotation=0,
+                    ha="right",
+                    va="center",
+                    labelpad=10,
+                )
 
     # Add overall labels
     fig.suptitle("Source Variable →", x=0.5, y=0.99, fontsize=12, fontweight="bold")
-    fig.text(0.01, 0.5, "Target Variable ↓", ha="left", va="center", rotation=90, fontsize=12, fontweight="bold")
+    fig.text(
+        0.01,
+        0.5,
+        "Target Variable ↓",
+        ha="left",
+        va="center",
+        rotation=90,
+        fontsize=12,
+        fontweight="bold",
+    )
 
     return fig, axs
 
@@ -505,10 +561,30 @@ def plot_multigrid_graph(
 def get_size_preset(grid_size):
     """Get recommended plotting parameters for different grid sizes"""
     if grid_size <= 10:
-        return {"figsize_per_panel": (4, 4), "node_size": 0.3, "arrow_linewidth": 2.0, "arrowhead_size": 30}
+        return {
+            "figsize_per_panel": (4, 4),
+            "node_size": 0.3,
+            "arrow_linewidth": 2.0,
+            "arrowhead_size": 30,
+        }
     elif grid_size <= 30:
-        return {"figsize_per_panel": (5, 5), "node_size": 0.15, "arrow_linewidth": 1.0, "arrowhead_size": 20}
+        return {
+            "figsize_per_panel": (5, 5),
+            "node_size": 0.15,
+            "arrow_linewidth": 1.0,
+            "arrowhead_size": 20,
+        }
     elif grid_size <= 50:
-        return {"figsize_per_panel": (6, 6), "node_size": 0.08, "arrow_linewidth": 0.5, "arrowhead_size": 10}
+        return {
+            "figsize_per_panel": (6, 6),
+            "node_size": 0.08,
+            "arrow_linewidth": 0.5,
+            "arrowhead_size": 10,
+        }
     else:  # 50-100+
-        return {"figsize_per_panel": (8, 8), "node_size": 0.04, "arrow_linewidth": 0.3, "arrowhead_size": 5}
+        return {
+            "figsize_per_panel": (8, 8),
+            "node_size": 0.04,
+            "arrow_linewidth": 0.3,
+            "arrowhead_size": 5,
+        }

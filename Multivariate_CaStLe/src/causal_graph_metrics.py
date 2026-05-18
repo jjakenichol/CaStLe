@@ -61,7 +61,9 @@ def get_confusion_matrix(true_graph: np.ndarray, discovered_graph: np.ndarray) -
     """
     assert (
         true_graph.shape == discovered_graph.shape
-    ), "Graph shapes do not agree. true_graph.shape={}, reconstructed_full_graph.shape={}".format(true_graph.shape, discovered_graph.shape)
+    ), "Graph shapes do not agree. true_graph.shape={}, reconstructed_full_graph.shape={}".format(
+        true_graph.shape, discovered_graph.shape
+    )
 
     TP = 0  # True positives
     FP = 0  # False positives
@@ -90,7 +92,13 @@ def get_confusion_matrix(true_graph: np.ndarray, discovered_graph: np.ndarray) -
 
 
 def F1_score(
-    *, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None
+    *,
+    true_graph: np.ndarray = None,
+    discovered_graph: np.ndarray = None,
+    TP: int = None,
+    FP: int = None,
+    FN: int = None,
+    TN: int = None
 ) -> tuple:
     """
     Computes the F1 score of a given graph relative to a reference, "ground-truth" graph.
@@ -241,7 +249,14 @@ def get_graph_metrics(graph: np.ndarray) -> tuple:
     max_outDegree_TS = np.max(out_degrees_TS)
     avg_outDegree_TS = np.mean(out_degrees_TS)
 
-    return [n_nodes, n_edges, max_inDegree, avg_inDegree, max_outDegree, avg_outDegree], [
+    return [
+        n_nodes,
+        n_edges,
+        max_inDegree,
+        avg_inDegree,
+        max_outDegree,
+        avg_outDegree,
+    ], [
         n_nodes_TS,
         n_edges_TS,
         max_inDegree_TS,
@@ -252,7 +267,13 @@ def get_graph_metrics(graph: np.ndarray) -> tuple:
 
 
 def matthews_correlation_coefficient(
-    *, true_graph: np.ndarray = None, discovered_graph: np.ndarray = None, TP: int = None, FP: int = None, FN: int = None, TN: int = None
+    *,
+    true_graph: np.ndarray = None,
+    discovered_graph: np.ndarray = None,
+    TP: int = None,
+    FP: int = None,
+    FN: int = None,
+    TN: int = None
 ) -> float:
     """
     Compute the Matthews correlation coefficient (MCC) (A.K.A. Phi coefficient)
@@ -344,4 +365,6 @@ def matthews_correlation_coefficient(
         else:
             raise ValueError("No conditions met!")
 
-    return (TP * TN - FP * FN) / (np.sqrt(float((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))))
+    return (TP * TN - FP * FN) / (
+        np.sqrt(float((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN)))
+    )

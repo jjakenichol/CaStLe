@@ -18,8 +18,11 @@ import sys
 
 sys.path.insert(0, "/mnt/user-data/uploads")
 
-from spatiotemporal_SCM_data_generator import generate_dataset, get_random_stable_coefficient_matrix, get_density
-
+from spatiotemporal_SCM_data_generator import (
+    generate_dataset,
+    get_random_stable_coefficient_matrix,
+    get_density,
+)
 
 # ============================================================================
 # Fixtures
@@ -57,9 +60,13 @@ def small_stable_coefs():
                 # Small coefficients to ensure stability
                 # Center cell has stronger influence
                 if i == 1 and j == 1:  # center
-                    coefs[child, i, j] = np.array([0.3 if p == child else 0.1 for p in range(n_vars)])
+                    coefs[child, i, j] = np.array(
+                        [0.3 if p == child else 0.1 for p in range(n_vars)]
+                    )
                 else:  # neighbors
-                    coefs[child, i, j] = np.array([0.05 if p == child else 0.02 for p in range(n_vars)])
+                    coefs[child, i, j] = np.array(
+                        [0.05 if p == child else 0.02 for p in range(n_vars)]
+                    )
 
     return coefs
 
@@ -76,8 +83,15 @@ class TestBasicFunctionality:
         """Test that output has expected shape (num_variables, grid_size, grid_size, T)."""
         data = generate_dataset(**basic_config)
 
-        expected_shape = (basic_config["num_variables"], basic_config["grid_size"], basic_config["grid_size"], basic_config["T"])
-        assert data.shape == expected_shape, f"Expected shape {expected_shape}, got {data.shape}"
+        expected_shape = (
+            basic_config["num_variables"],
+            basic_config["grid_size"],
+            basic_config["grid_size"],
+            basic_config["T"],
+        )
+        assert (
+            data.shape == expected_shape
+        ), f"Expected shape {expected_shape}, got {data.shape}"
 
     def test_returns_coefs_when_requested(self, basic_config):
         """Test that function returns both coefficients and data when return_coefs=True."""
@@ -90,11 +104,18 @@ class TestBasicFunctionality:
         coefs, data = result
         assert coefs is not None
         assert data is not None
-        assert data.shape == (basic_config["num_variables"], basic_config["grid_size"], basic_config["grid_size"], basic_config["T"])
+        assert data.shape == (
+            basic_config["num_variables"],
+            basic_config["grid_size"],
+            basic_config["grid_size"],
+            basic_config["T"],
+        )
 
     def test_with_provided_coefficients(self, small_stable_coefs):
         """Test that function works with pre-provided coefficients."""
-        data = generate_dataset(grid_size=3, T=5, spatial_coefs=small_stable_coefs, error_sigma=0.05)
+        data = generate_dataset(
+            grid_size=3, T=5, spatial_coefs=small_stable_coefs, error_sigma=0.05
+        )
 
         assert data.shape == (2, 3, 3, 5)
 
@@ -110,7 +131,9 @@ class TestBasicFunctionality:
         basic_config["initialize_randomly"] = True
         data = generate_dataset(**basic_config)
 
-        assert not np.allclose(data[:, :, :, 0], 0.0), "Expected first timestep to be non-zero"
+        assert not np.allclose(
+            data[:, :, :, 0], 0.0
+        ), "Expected first timestep to be non-zero"
 
     def test_all_values_finite(self, basic_config):
         """Test that generated data contains no NaN or Inf values."""
@@ -139,7 +162,15 @@ class TestEdgeCases:
 
     def test_single_variable(self):
         """Test with single variable system."""
-        data = generate_dataset(grid_size=4, T=5, num_variables=1, dependence_density=0.5, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=4,
+            T=5,
+            num_variables=1,
+            dependence_density=0.5,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (1, 4, 4, 5)
 
@@ -150,38 +181,87 @@ class TestEdgeCases:
         the 3x3 neighbor structure has significant overlap, potentially causing
         instability or coefficient generation issues.
         """
-        data = generate_dataset(grid_size=4, T=5, num_variables=2, dependence_density=0.3, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=4,
+            T=5,
+            num_variables=2,
+            dependence_density=0.3,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 4, 4, 5)
 
     def test_small_grid_3x3(self):
         """Test with 3x3 grid to verify it works despite some neighbor overlap."""
-        data = generate_dataset(grid_size=3, T=5, num_variables=2, dependence_density=0.3, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=3,
+            T=5,
+            num_variables=2,
+            dependence_density=0.3,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 3, 3, 5)
 
     def test_minimal_timesteps(self):
         """Test with minimal number of timesteps (T=2)."""
-        data = generate_dataset(grid_size=3, T=2, num_variables=2, dependence_density=0.3, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=3,
+            T=2,
+            num_variables=2,
+            dependence_density=0.3,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 3, 3, 2)
 
     def test_zero_noise(self, small_stable_coefs):
         """Test with zero noise (deterministic dynamics only)."""
-        data = generate_dataset(grid_size=3, T=5, spatial_coefs=small_stable_coefs, error_sigma=0.0, error_mean=0.0, initialize_randomly=False)
+        data = generate_dataset(
+            grid_size=3,
+            T=5,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.0,
+            error_mean=0.0,
+            initialize_randomly=False,
+        )
 
         # With zero initialization and zero noise, all data should be zero
-        assert np.allclose(data, 0.0), "Expected all zeros with zero init and zero noise"
+        assert np.allclose(
+            data, 0.0
+        ), "Expected all zeros with zero init and zero noise"
 
     def test_high_density(self):
         """Test with high dependence density (0.9)."""
-        data = generate_dataset(grid_size=4, T=5, num_variables=2, dependence_density=0.9, coefficient_min_value_threshold=0.05, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=4,
+            T=5,
+            num_variables=2,
+            dependence_density=0.9,
+            coefficient_min_value_threshold=0.05,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 4, 4, 5)
 
     def test_low_density(self):
         """Test with very low dependence density (0.1)."""
-        data = generate_dataset(grid_size=4, T=5, num_variables=2, dependence_density=0.1, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=4,
+            T=5,
+            num_variables=2,
+            dependence_density=0.1,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 4, 4, 5)
 
@@ -198,7 +278,13 @@ class TestBoundaryConditions:
         """Test that boundary cells are influenced by their neighbors."""
         # Use deterministic initialization to check influence
         np.random.seed(42)
-        data = generate_dataset(grid_size=3, T=3, spatial_coefs=small_stable_coefs, error_sigma=0.01, initialize_randomly=True)
+        data = generate_dataset(
+            grid_size=3,
+            T=3,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.01,
+            initialize_randomly=True,
+        )
 
         # Check that corner cell at t=2 is influenced by t=1 neighbors
         # (exact value depends on coefficients, but should be non-zero)
@@ -206,11 +292,19 @@ class TestBoundaryConditions:
         corner_t2 = data[0, 0, 0, 2]
 
         # Value should change over time if influenced by neighbors
-        assert not np.isclose(corner_t1, corner_t2, atol=0.001), "Corner cell should change over time due to neighbor influence"
+        assert not np.isclose(
+            corner_t1, corner_t2, atol=0.001
+        ), "Corner cell should change over time due to neighbor influence"
 
     def test_edge_cells_computed(self, small_stable_coefs):
         """Test that edge and corner cells are properly computed."""
-        data = generate_dataset(grid_size=3, T=5, spatial_coefs=small_stable_coefs, error_sigma=0.05, initialize_randomly=False)
+        data = generate_dataset(
+            grid_size=3,
+            T=5,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.05,
+            initialize_randomly=False,
+        )
 
         # Check that edge cells have been computed (not left at zero for all t)
         edges = [
@@ -222,7 +316,9 @@ class TestBoundaryConditions:
 
         for edge in edges:
             # With noise, edges should have non-zero values eventually
-            assert not np.allclose(edge, 0.0, atol=0.01), "Edge cells should have non-zero values due to noise accumulation"
+            assert not np.allclose(
+                edge, 0.0, atol=0.01
+            ), "Edge cells should have non-zero values due to noise accumulation"
 
 
 # ============================================================================
@@ -260,11 +356,27 @@ class TestParameterValidation:
     def test_both_density_and_num_links_raises_error(self):
         """Test that providing both density and num_links raises assertion error."""
         with pytest.raises(AssertionError):
-            generate_dataset(grid_size=4, T=5, num_variables=2, dependence_density=0.3, num_links=10, coefficient_min_value_threshold=0.1, min_val_scaler=1.0)
+            generate_dataset(
+                grid_size=4,
+                T=5,
+                num_variables=2,
+                dependence_density=0.3,
+                num_links=10,
+                coefficient_min_value_threshold=0.1,
+                min_val_scaler=1.0,
+            )
 
     def test_num_links_parameter(self):
         """Test that num_links parameter works correctly."""
-        data = generate_dataset(grid_size=4, T=5, num_variables=2, num_links=10, coefficient_min_value_threshold=0.1, min_val_scaler=1.0, error_sigma=0.1)
+        data = generate_dataset(
+            grid_size=4,
+            T=5,
+            num_variables=2,
+            num_links=10,
+            coefficient_min_value_threshold=0.1,
+            min_val_scaler=1.0,
+            error_sigma=0.1,
+        )
 
         assert data.shape == (2, 4, 4, 5)
 
@@ -272,7 +384,14 @@ class TestParameterValidation:
         """Test that requesting too many links for the number of variables raises error."""
         # For 2 variables, max links = 2 * 9 * 2 = 36
         with pytest.raises(AssertionError):
-            generate_dataset(grid_size=4, T=5, num_variables=2, num_links=100, coefficient_min_value_threshold=0.1, min_val_scaler=1.0)  # Too many
+            generate_dataset(
+                grid_size=4,
+                T=5,
+                num_variables=2,
+                num_links=100,
+                coefficient_min_value_threshold=0.1,
+                min_val_scaler=1.0,
+            )  # Too many
 
 
 # ============================================================================
@@ -320,12 +439,21 @@ class TestInstabilityDetection:
                 for k in range(3):
                     # Large self-influence on center cell
                     if i == 1 and k == 1:
-                        unstable_coefs[child, i, k] = np.array([0.9 if p == child else 0.0 for p in range(n_vars)])
+                        unstable_coefs[child, i, k] = np.array(
+                            [0.9 if p == child else 0.0 for p in range(n_vars)]
+                        )
                     else:
-                        unstable_coefs[child, i, k] = np.array([0.15 if p == child else 0.0 for p in range(n_vars)])
+                        unstable_coefs[child, i, k] = np.array(
+                            [0.15 if p == child else 0.0 for p in range(n_vars)]
+                        )
 
         data = generate_dataset(
-            grid_size=3, T=5, spatial_coefs=unstable_coefs, error_sigma=0.5, initialize_randomly=True, detect_instability=False  # Short to prevent excessive computation
+            grid_size=3,
+            T=5,
+            spatial_coefs=unstable_coefs,
+            error_sigma=0.5,
+            initialize_randomly=True,
+            detect_instability=False,  # Short to prevent excessive computation
         )
 
         # With strong self-reinforcement and random initialization,
@@ -334,9 +462,13 @@ class TestInstabilityDetection:
         # Values should grow over time due to instability
         initial_magnitude = np.mean(np.abs(data[:, :, :, 0]))
         final_magnitude = np.mean(np.abs(data[:, :, :, -1]))
-        assert final_magnitude > initial_magnitude, "Values should grow with unstable coefficients"
+        assert (
+            final_magnitude > initial_magnitude
+        ), "Values should grow with unstable coefficients"
 
-    @pytest.mark.skip(reason="Coefficient generation with aggressive parameters can hang indefinitely due to spectral radius constraints")
+    @pytest.mark.skip(
+        reason="Coefficient generation with aggressive parameters can hang indefinitely due to spectral radius constraints"
+    )
     def test_aggressive_parameters_coefficient_generation_limitation(self):
         """Demonstrates inherent limitation: aggressive parameters may make stable coefficients impossible.
 
@@ -350,7 +482,14 @@ class TestInstabilityDetection:
         """
         # This would hang trying to find stable coefficients
         data = generate_dataset(
-            grid_size=3, T=3, num_variables=2, dependence_density=0.8, coefficient_min_value_threshold=0.3, min_val_scaler=2.0, error_sigma=0.1, detect_instability=False
+            grid_size=3,
+            T=3,
+            num_variables=2,
+            dependence_density=0.8,
+            coefficient_min_value_threshold=0.3,
+            min_val_scaler=2.0,
+            error_sigma=0.1,
+            detect_instability=False,
         )
 
         assert data.shape == (2, 3, 3, 3)
@@ -402,36 +541,66 @@ class TestNumericalProperties:
         data = generate_dataset(**basic_config)
 
         # For stable system, values shouldn't explode
-        assert np.max(np.abs(data)) < 100, f"Data magnitude too large: max={np.max(np.abs(data))}"
+        assert (
+            np.max(np.abs(data)) < 100
+        ), f"Data magnitude too large: max={np.max(np.abs(data))}"
 
     def test_noise_affects_data(self, small_stable_coefs):
         """Test that noise parameter actually affects the output."""
         np.random.seed(42)
-        data_low_noise = generate_dataset(grid_size=3, T=20, spatial_coefs=small_stable_coefs, error_sigma=0.01, initialize_randomly=False)
+        data_low_noise = generate_dataset(
+            grid_size=3,
+            T=20,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.01,
+            initialize_randomly=False,
+        )
 
         np.random.seed(42)
-        data_high_noise = generate_dataset(grid_size=3, T=20, spatial_coefs=small_stable_coefs, error_sigma=0.5, initialize_randomly=False)
+        data_high_noise = generate_dataset(
+            grid_size=3,
+            T=20,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.5,
+            initialize_randomly=False,
+        )
 
         # Higher noise should lead to different and more variable data
         variance_low = np.var(data_low_noise)
         variance_high = np.var(data_high_noise)
 
-        assert variance_high > variance_low, "Higher noise should result in higher variance"
+        assert (
+            variance_high > variance_low
+        ), "Higher noise should result in higher variance"
 
     def test_temporal_evolution(self, small_stable_coefs):
         """Test that data evolves over time (not static)."""
-        data = generate_dataset(grid_size=3, T=10, spatial_coefs=small_stable_coefs, error_sigma=0.1, initialize_randomly=False)
+        data = generate_dataset(
+            grid_size=3,
+            T=10,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.1,
+            initialize_randomly=False,
+        )
 
         # Check that data changes over time
         for t in range(1, 10):
             # Some cells should differ from previous timestep
             diff = np.abs(data[:, :, :, t] - data[:, :, :, t - 1])
-            assert np.sum(diff > 0.01) > 0, f"Data should evolve over time (timestep {t})"
+            assert (
+                np.sum(diff > 0.01) > 0
+            ), f"Data should evolve over time (timestep {t})"
 
     def test_spatial_variation(self, small_stable_coefs):
         """Test that data varies across spatial locations."""
         np.random.seed(42)
-        data = generate_dataset(grid_size=5, T=20, spatial_coefs=small_stable_coefs, error_sigma=0.1, initialize_randomly=True)
+        data = generate_dataset(
+            grid_size=5,
+            T=20,
+            spatial_coefs=small_stable_coefs,
+            error_sigma=0.1,
+            initialize_randomly=True,
+        )
 
         # At final timestep, not all cells should be identical
         final_timestep = data[0, :, :, -1]
@@ -454,14 +623,22 @@ class TestCoefficientHandling:
         coefs, data = generate_dataset(**basic_config)
 
         n_vars = basic_config["num_variables"]
-        assert coefs.shape == (n_vars, 3, 3), f"Expected coefficient shape ({n_vars}, 3, 3), got {coefs.shape}"
+        assert coefs.shape == (
+            n_vars,
+            3,
+            3,
+        ), f"Expected coefficient shape ({n_vars}, 3, 3), got {coefs.shape}"
 
         # Each entry should be an array of length n_vars
         for i in range(n_vars):
             for j in range(3):
                 for k in range(3):
-                    assert isinstance(coefs[i, j, k], np.ndarray), f"Coefficient entry should be numpy array"
-                    assert len(coefs[i, j, k]) == n_vars, f"Each coefficient entry should have length {n_vars}"
+                    assert isinstance(
+                        coefs[i, j, k], np.ndarray
+                    ), f"Coefficient entry should be numpy array"
+                    assert (
+                        len(coefs[i, j, k]) == n_vars
+                    ), f"Each coefficient entry should have length {n_vars}"
 
     def test_different_seeds_produce_different_coefs(self, basic_config):
         """Test that coefficient generation is stochastic."""
@@ -482,7 +659,9 @@ class TestCoefficientHandling:
                     vals1.extend(coefs1[i, j, k])
                     vals2.extend(coefs2[i, j, k])
 
-        assert not np.allclose(vals1, vals2), "Different seeds should produce different coefficients"
+        assert not np.allclose(
+            vals1, vals2
+        ), "Different seeds should produce different coefficients"
 
     def test_provided_coefs_used_exactly(self):
         """Test that provided coefficients are used without modification."""
@@ -497,7 +676,9 @@ class TestCoefficientHandling:
                     coefs[i, j, k] = np.array([0.1 * (i + 1), 0.05 * (i + 1)])
 
         # Generate data with these coefficients, then retrieve them
-        data = generate_dataset(grid_size=3, T=5, spatial_coefs=coefs, error_sigma=0.1, return_coefs=False)
+        data = generate_dataset(
+            grid_size=3, T=5, spatial_coefs=coefs, error_sigma=0.1, return_coefs=False
+        )
 
         # The function should use these coefficients
         # We can't directly verify, but the data should be generated
@@ -517,7 +698,12 @@ class TestVerboseOutput:
         basic_config["verbose"] = 1
         data = generate_dataset(**basic_config)
 
-        assert data.shape == (basic_config["num_variables"], basic_config["grid_size"], basic_config["grid_size"], basic_config["T"])
+        assert data.shape == (
+            basic_config["num_variables"],
+            basic_config["grid_size"],
+            basic_config["grid_size"],
+            basic_config["T"],
+        )
 
 
 # ============================================================================
@@ -567,7 +753,9 @@ class TestIntegration:
         data2 = generate_dataset(**basic_config)
 
         # Should be different due to random coefficient generation and noise
-        assert not np.allclose(data1, data2), "Different runs should produce different results"
+        assert not np.allclose(
+            data1, data2
+        ), "Different runs should produce different results"
 
 
 # ============================================================================

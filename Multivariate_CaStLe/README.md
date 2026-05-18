@@ -1,10 +1,10 @@
 # M-CaStLe: Multivariate CaStLe
 
 TL;DR
-M-CaStLe is a multivariate extension of CaStLe for causal discovery in high-dimensional space–time systems, enabling robust identification of both spatial and inter-variable dynamics with applications to synthetic benchmarks and real-world datasets.
+M-CaStLe is a multivariate extension of CaStLe for causal discovery in high-dimensional space–time systems, enabling robust identification of both spatial and inter-variable dynamics.
 
 ## Introduction  
-Causal discovery in gridded space–time data is fundamentally challenging: the number of spatial locations often far exceeds the number of available time points, and multiple interacting variables can complicate both inference and interpretation. CaStLe (Nichol et al. 2025) addressed this “large-p, small-T” problem for univariate fields by exploiting locality (stationarity of a small Moore neighborhood) and a two-stage meta-algorithm (gathering local replicates + causal estimation). However, many scientific systems—from climate models to ecological networks—are inherently multivariate, with cross-variable couplings that the original CaStLe cannot capture.
+Causal discovery in gridded space–time data is fundamentally challenging: the number of spatial locations often far exceeds the number of available time points, and multiple interacting variables can complicate both inference and interpretation. CaStLe (Nichol et al. 2025) addressed this “large-$p$, small-$n$” problem for univariate fields by exploiting locality (stationarity of a small Moore neighborhood) and a two-stage meta-algorithm (gathering local replicates + causal estimation). However, many scientific systems—from climate models to ecological networks—are inherently multivariate, with cross-variable couplings that the original CaStLe cannot capture.
 
 M-CaStLe extends CaStLe to N-variable fields by representing each grid-cell’s 3×3 Moore neighborhood over N variables as a single 9N-dimensional vector, then applying time series causal discovery algorithms under stencil-specific link assumptions to learn a 9N×9N local causal stencil. Once learned, that multivariate stencil can be “stitched” across every cell of a toroidal grid to reconstruct a global causal graph of size (grid²·N)². From this learned structure we extract  
  • the multivariate causal **stencil graph** (9N×9N),  

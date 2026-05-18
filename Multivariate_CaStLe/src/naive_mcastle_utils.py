@@ -37,7 +37,11 @@ from typing import Optional, Tuple
 
 from causalnex.structure.dynotears import from_pandas_dynamic
 
-from mcastle_utils import mv_CaStLe_PC, mv_CaStLe_DYNOTEARS, get_graph_from_structure_model
+from mcastle_utils import (
+    mv_CaStLe_PC,
+    mv_CaStLe_DYNOTEARS,
+    get_graph_from_structure_model,
+)
 
 
 def _spatially_aggregate(data: np.ndarray) -> np.ndarray:
@@ -334,7 +338,9 @@ def cartesian_ucastle_pc(
     spatial_mean = _spatially_aggregate(data)
 
     if verbose:
-        print(f"Running non-spatial {cd_function} on spatially aggregated data (shape {spatial_mean.shape})...")
+        print(
+            f"Running non-spatial {cd_function} on spatially aggregated data (shape {spatial_mean.shape})..."
+        )
 
     # Step 3: Non-spatial PC/PCMCI
     non_spatial_results = _run_nonspatial_pcmci(
@@ -357,8 +363,13 @@ def cartesian_ucastle_pc(
 
     # Step 4: Assemble combined stencil
     combined_graph, combined_val, combined_p = _assemble_combined_stencil(
-        variable_n, ucastle_graphs, ucastle_vals, ucastle_ps,
-        inter_graph, inter_val, inter_p,
+        variable_n,
+        ucastle_graphs,
+        ucastle_vals,
+        ucastle_ps,
+        inter_graph,
+        inter_val,
+        inter_p,
     )
 
     if verbose:
@@ -456,7 +467,9 @@ def cartesian_ucastle_dynotears(
     spatial_mean = _spatially_aggregate(data)
 
     if verbose:
-        print(f"Running non-spatial DYNOTEARS on spatially aggregated data (shape {spatial_mean.shape})...")
+        print(
+            f"Running non-spatial DYNOTEARS on spatially aggregated data (shape {spatial_mean.shape})..."
+        )
 
     # Step 3: Non-spatial DYNOTEARS
     inter_graph, inter_val = _run_nonspatial_dynotears(
@@ -475,8 +488,13 @@ def cartesian_ucastle_dynotears(
 
     # Step 4: Assemble combined stencil (no p-matrix for DYNOTEARS)
     combined_graph, combined_val, _ = _assemble_combined_stencil(
-        variable_n, ucastle_graphs, ucastle_vals, ucastle_ps,
-        inter_graph, inter_val, inter_p=None,
+        variable_n,
+        ucastle_graphs,
+        ucastle_vals,
+        ucastle_ps,
+        inter_graph,
+        inter_val,
+        inter_p=None,
     )
 
     if verbose:

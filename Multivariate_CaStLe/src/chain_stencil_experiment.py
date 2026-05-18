@@ -29,7 +29,12 @@ from tigramite.independence_tests.parcorr import ParCorr
 
 import mcastle_utils as ms
 import spatiotemporal_SCM_data_generator as mvdg
-from causal_graph_metrics import F1_score, get_graph_metrics, get_confusion_matrix, matthews_correlation_coefficient as mcc
+from causal_graph_metrics import (
+    F1_score,
+    get_graph_metrics,
+    get_confusion_matrix,
+    matthews_correlation_coefficient as mcc,
+)
 
 
 def run_experiment(
@@ -64,26 +69,43 @@ def run_experiment(
 
     # Generate stable coefficients
     spatial_coefficients = mvdg.get_stable_coefficient_chain_matrix(
-        grid_size=grid_size, n_variables=num_variables, coefficient_value=coefficient_value, position=position, verbose=0
+        grid_size=grid_size,
+        n_variables=num_variables,
+        coefficient_value=coefficient_value,
+        position=position,
+        verbose=0,
     )
     true_graph, _ = ms.get_stencil_graph_from_coefficients(spatial_coefficients)
 
     # Generate dataset
     data = mvdg.generate_dataset(
-        T=T, grid_size=grid_size, spatial_coefs=spatial_coefficients, num_variables=num_variables, verbose=verbose, initialize_randomly=True
+        T=T,
+        grid_size=grid_size,
+        spatial_coefs=spatial_coefficients,
+        num_variables=num_variables,
+        verbose=verbose,
+        initialize_randomly=True,
     )
 
     parcorr = ParCorr(significance="analytic")
 
     start_time = time.time()
     results = ms.mv_CaStLe_PC(
-        data, parcorr, pc_alpha, cd_function="run_pcalg", fdr_method="bh", rows_inverted=True, graph_p_threshold=pval_threshold
+        data,
+        parcorr,
+        pc_alpha,
+        cd_function="run_pcalg",
+        fdr_method="bh",
+        rows_inverted=True,
+        graph_p_threshold=pval_threshold,
     )
     algorithm_time = time.time() - start_time
     reconstructed_graph = results["graph"]
 
     # Compute performance metrics
-    F1, P, R, TP, FP, FN, TN = F1_score(true_graph=true_graph, discovered_graph=reconstructed_graph)
+    F1, P, R, TP, FP, FN, TN = F1_score(
+        true_graph=true_graph, discovered_graph=reconstructed_graph
+    )
     MCC = mcc(TP=TP, FP=FP, FN=FN, TN=TN)
 
     output_dict: Dict[str, Any] = {
@@ -126,16 +148,37 @@ def run_experiment(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the MV_CaStLe experiment with specified parameters.")
+    parser = argparse.ArgumentParser(
+        description="Run the MV_CaStLe experiment with specified parameters."
+    )
     parser.add_argument("--T", type=int, required=True, help="Number of time steps")
     parser.add_argument("--grid_size", type=int, required=True, help="Grid size")
-    parser.add_argument("--num_variables", type=int, required=True, help="Number of variables")
-    parser.add_argument("--coefficient_value", type=float, required=True, help="Coefficient value")
-    parser.add_argument("--position", type=str, choices=["center", "none"], required=True, help="Position (center or none)")
+    parser.add_argument(
+        "--num_variables", type=int, required=True, help="Number of variables"
+    )
+    parser.add_argument(
+        "--coefficient_value", type=float, required=True, help="Coefficient value"
+    )
+    parser.add_argument(
+        "--position",
+        type=str,
+        choices=["center", "none"],
+        required=True,
+        help="Position (center or none)",
+    )
     parser.add_argument("--pc_alpha", type=float, required=True, help="PC alpha value")
-    parser.add_argument("--pval_threshold", type=float, required=True, help="P-value threshold")
-    parser.add_argument("--output-dir", type=str, default="results", help="Directory to save experiment results")
-    parser.add_argument("--print", action="store_true", help="Print results instead of saving")
+    parser.add_argument(
+        "--pval_threshold", type=float, required=True, help="P-value threshold"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="results",
+        help="Directory to save experiment results",
+    )
+    parser.add_argument(
+        "--print", action="store_true", help="Print results instead of saving"
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
     args = parser.parse_args()

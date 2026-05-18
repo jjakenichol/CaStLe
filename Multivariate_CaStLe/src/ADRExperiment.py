@@ -52,17 +52,31 @@ class ADRExperiment:
     ):
         if not skip_initial_params:
             # Validation for velocity parameters
-            if velocity_parameters is not None and (velocity_angle is not None or velocity_magnitude is not None):
-                raise ValueError("velocity_parameters cannot be passed along with velocity_angle or velocity_magnitude.")
+            if velocity_parameters is not None and (
+                velocity_angle is not None or velocity_magnitude is not None
+            ):
+                raise ValueError(
+                    "velocity_parameters cannot be passed along with velocity_angle or velocity_magnitude."
+                )
             if (velocity_angle is not None) != (velocity_magnitude is not None):
-                raise ValueError("Both velocity_angle and velocity_magnitude must be provided together.")
+                raise ValueError(
+                    "Both velocity_angle and velocity_magnitude must be provided together."
+                )
 
             if velocity_parameters is not None:
                 # Validation for velocity parameters
-                if velocity_field_type == "constant" and (len(velocity_parameters) != 2):
-                    raise ValueError("For 'constant' velocity_field_type, velocity_parameters must be a list of two values.")
-                if velocity_field_type == "sinusoidal" and (len(velocity_parameters) != 2):
-                    raise ValueError("For 'sinusoidal' velocity_field_type, velocity_parameters must be a list of two values.")
+                if velocity_field_type == "constant" and (
+                    len(velocity_parameters) != 2
+                ):
+                    raise ValueError(
+                        "For 'constant' velocity_field_type, velocity_parameters must be a list of two values."
+                    )
+                if velocity_field_type == "sinusoidal" and (
+                    len(velocity_parameters) != 2
+                ):
+                    raise ValueError(
+                        "For 'sinusoidal' velocity_field_type, velocity_parameters must be a list of two values."
+                    )
 
             self.mesh_shape = mesh_shape
             self.init_center = init_center if init_center is not None else [-0.5, 0.5]
@@ -100,14 +114,23 @@ class ADRExperiment:
 
         if velocity_parameters is not None:
             if velocity_angle is not None or velocity_magnitude is not None:
-                raise ValueError("velocity_parameters cannot be passed along with velocity_angle or velocity_magnitude.")
+                raise ValueError(
+                    "velocity_parameters cannot be passed along with velocity_angle or velocity_magnitude."
+                )
         else:
             if (velocity_angle is not None) != (velocity_magnitude is not None):
-                raise ValueError("Both velocity_angle and velocity_magnitude must be provided together.")
+                raise ValueError(
+                    "Both velocity_angle and velocity_magnitude must be provided together."
+                )
             if velocity_angle is not None and velocity_magnitude is not None:
-                self.velocity_parameters = [float(velocity_magnitude * np.cos(np.radians(velocity_angle))), float(velocity_magnitude * np.sin(np.radians(velocity_angle)))]
+                self.velocity_parameters = [
+                    float(velocity_magnitude * np.cos(np.radians(velocity_angle))),
+                    float(velocity_magnitude * np.sin(np.radians(velocity_angle))),
+                ]
             else:
-                warnings.warn("Neither velocity_parameters nor both velocity_angle and velocity_magnitude are provided. Setting velocity_parameters to None.")
+                warnings.warn(
+                    "Neither velocity_parameters nor both velocity_angle and velocity_magnitude are provided. Setting velocity_parameters to None."
+                )
                 self.velocity_parameters = None
 
     def run_adr_experiment(self, cached_files_dir: str = None) -> np.ndarray:
@@ -122,7 +145,9 @@ class ADRExperiment:
                         representing the species concentrations over time and space.
         """
         filename = self.generate_filename()
-        cached_file_path = path.join(cached_files_dir, filename) if cached_files_dir else None
+        cached_file_path = (
+            path.join(cached_files_dir, filename) if cached_files_dir else None
+        )
 
         if cached_files_dir and path.exists(cached_file_path):
             print(f"Loading cached experiment results from {cached_file_path}")
@@ -130,9 +155,13 @@ class ADRExperiment:
 
             # Check for corrupted data.
             if experiment.solution.size == 0:
-                print("ADRExperiment Warning: cached experiment has an empty solution. Running experiment again.")
+                print(
+                    "ADRExperiment Warning: cached experiment has an empty solution. Running experiment again."
+                )
             elif experiment.solution.size == 1 and experiment.solution.item() is None:
-                print("ADRExperiment Warning: cached experiment has a None solution. Running experiment again.")
+                print(
+                    "ADRExperiment Warning: cached experiment has a None solution. Running experiment again."
+                )
             else:
                 self.solution = experiment.solution
                 return self.solution
@@ -263,7 +292,9 @@ class ADRExperiment:
             filename_parts.extend(["0.0", "0.0"])
 
         # Add velocity field type and parameters
-        filename_parts.append(str(self.velocity_field_type) if self.velocity_field_type else "none")
+        filename_parts.append(
+            str(self.velocity_field_type) if self.velocity_field_type else "none"
+        )
         if self.velocity_parameters is not None:
             filename_parts.extend(
                 [
@@ -384,7 +415,9 @@ class ADRExperiment:
             if expected_filename in existing_files:
                 exact_matches += 1
 
-        print(f"Found {exact_matches} exact filename matches out of {len(param_combinations)} parameter combinations.")
+        print(
+            f"Found {exact_matches} exact filename matches out of {len(param_combinations)} parameter combinations."
+        )
 
     @staticmethod
     def parse_filename(filename: str) -> dict:
@@ -412,13 +445,26 @@ class ADRExperiment:
 
         # Convert appropriate values to float or int
         params["mesh_shape"] = params["mesh_shape"]
-        params["init_center"] = [float(params.pop("init_center_x")), float(params.pop("init_center_y"))]
+        params["init_center"] = [
+            float(params.pop("init_center_x")),
+            float(params.pop("init_center_y")),
+        ]
         params["plume_size"] = int(params["plume_size"])
-        params["diff_coeffs"] = [float(params.pop("diff_coeff_x")), float(params.pop("diff_coeff_y"))]
-        params["advection_coeffs"] = [float(params.pop("advection_coeff_x")), float(params.pop("advection_coeff_y"))]
+        params["diff_coeffs"] = [
+            float(params.pop("diff_coeff_x")),
+            float(params.pop("diff_coeff_y")),
+        ]
+        params["advection_coeffs"] = [
+            float(params.pop("advection_coeff_x")),
+            float(params.pop("advection_coeff_y")),
+        ]
 
         # Handle velocity-related parameters
-        params["velocity_field_type"] = params["velocity_field_type"] if params["velocity_field_type"] != "none" else None
+        params["velocity_field_type"] = (
+            params["velocity_field_type"]
+            if params["velocity_field_type"] != "none"
+            else None
+        )
         velocity_param_x = float(params.pop("velocity_param_x"))
         velocity_param_y = float(params.pop("velocity_param_y"))
 
@@ -441,7 +487,9 @@ class ADRExperiment:
         t_start = float(params.pop("t_start"))
         t_stop = float(params.pop("t_stop"))
         t_num = int(params.pop("t_num"))
-        params["t"] = np.linspace(t_start, t_stop, t_num).tolist() if t_num > 0 else None
+        params["t"] = (
+            np.linspace(t_start, t_stop, t_num).tolist() if t_num > 0 else None
+        )
 
         return params
 
@@ -466,7 +514,11 @@ class ADRExperiment:
             (8, 4, 1): 135,
         }
 
-        vectors = [(dependence_dict[dependence], angle_dict[dependence]) for dependence in dependence_dict.keys() if dependence != (4, 4, 1)]
+        vectors = [
+            (dependence_dict[dependence], angle_dict[dependence])
+            for dependence in dependence_dict.keys()
+            if dependence != (4, 4, 1)
+        ]
         return vectors
 
     @staticmethod
@@ -525,7 +577,12 @@ class ADRExperiment:
             else:
                 print(f"  {key}: {value}")
 
-    def run_batch_experiments(self, param_sweeps: dict, cached_files_dir: str = None, force_rerun: bool = False) -> None:
+    def run_batch_experiments(
+        self,
+        param_sweeps: dict,
+        cached_files_dir: str = None,
+        force_rerun: bool = False,
+    ) -> None:
         """
         Run a batch of ADR experiments with varying parameters, using a single MATLAB engine.
 
@@ -547,7 +604,9 @@ class ADRExperiment:
 
         # Get parameter combinations
         keys, values = zip(*param_sweeps.items())
-        param_combinations = [dict(zip(keys, combination)) for combination in product(*values)]
+        param_combinations = [
+            dict(zip(keys, combination)) for combination in product(*values)
+        ]
         total_experiments = len(param_combinations)
 
         # Find experiments to run
@@ -557,7 +616,9 @@ class ADRExperiment:
         for params in param_combinations:
             # Check cache
             if not force_rerun and cached_files_dir:
-                is_cached, cached_path = self.is_experiment_cached(params, cached_files_dir)
+                is_cached, cached_path = self.is_experiment_cached(
+                    params, cached_files_dir
+                )
                 if is_cached:
                     completed_experiments += 1
                     continue
@@ -602,10 +663,14 @@ class ADRExperiment:
                 exp_params = params.copy()
                 exp_params["verbose"] = orig_verbose
                 exp_params["plot"] = orig_plot
-                exp_params["parallel_interpolation"] = False  # Avoid parallel pool issues
+                exp_params["parallel_interpolation"] = (
+                    False  # Avoid parallel pool issues
+                )
 
                 # Save the current engine
-                current_engine = self.pde_solver.eng if hasattr(self.pde_solver, "eng") else None
+                current_engine = (
+                    self.pde_solver.eng if hasattr(self.pde_solver, "eng") else None
+                )
 
                 # Reset parameters
                 self.__init__(**exp_params)
@@ -658,10 +723,16 @@ class ADRExperiment:
                 # Report progress
                 if orig_verbose:
                     print(f"Experiment completed in {runtime:.2f} seconds.")
-                    print(f"Running average: {running_average:.2f} seconds per experiment.")
-                    print(f"Progress: {experiment_count}/{len(experiments_to_run)} ({experiment_count/len(experiments_to_run)*100:.1f}%)")
+                    print(
+                        f"Running average: {running_average:.2f} seconds per experiment."
+                    )
+                    print(
+                        f"Progress: {experiment_count}/{len(experiments_to_run)} ({experiment_count/len(experiments_to_run)*100:.1f}%)"
+                    )
 
-                    est_remaining = running_average * (len(experiments_to_run) - experiment_count)
+                    est_remaining = running_average * (
+                        len(experiments_to_run) - experiment_count
+                    )
                     hours = int(est_remaining / 3600)
                     minutes = int((est_remaining % 3600) / 60)
                     print(f"Estimated time remaining: {hours}h {minutes}m")
@@ -681,5 +752,9 @@ class ADRExperiment:
         # Final report
         if orig_verbose and experiment_count > 0:
             print(f"\nCompleted {experiment_count} new experiments.")
-            print(f"Average runtime: {total_runtime/experiment_count:.2f} seconds per experiment.")
-            print(f"Total completed: {completed_experiments + experiment_count}/{total_experiments}.")
+            print(
+                f"Average runtime: {total_runtime/experiment_count:.2f} seconds per experiment."
+            )
+            print(
+                f"Total completed: {completed_experiments + experiment_count}/{total_experiments}."
+            )

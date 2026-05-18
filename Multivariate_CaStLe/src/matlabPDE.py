@@ -59,7 +59,9 @@ class MatlabPDE:
             matlab.double: The output from the MATLAB script.
         """
         if self.eng is None:
-            raise RuntimeError("MATLAB engine is not started. Call start_engine() first.")
+            raise RuntimeError(
+                "MATLAB engine is not started. Call start_engine() first."
+            )
 
         script_dir = path.dirname(script_path)
         script_filename = path.basename(script_path).split(".")[0]
@@ -115,7 +117,9 @@ class MatlabPDE:
             axes[i].invert_yaxis()
             ims.append(im)
             # Add a colorbar for each subplot
-            fig.colorbar(im, ax=axes[i], orientation="vertical", fraction=0.02, pad=0.04)
+            fig.colorbar(
+                im, ax=axes[i], orientation="vertical", fraction=0.02, pad=0.04
+            )
 
         # Add a text annotation for the time step
         time_text = fig.text(0.5, 0.92, "", ha="center", fontsize=12)
@@ -167,7 +171,9 @@ class MatlabPDE:
             ims.append(im)
 
         # Add a common colorbar
-        cbar = fig.colorbar(ims[0], ax=axes, orientation="vertical", fraction=0.02, pad=0.04)
+        cbar = fig.colorbar(
+            ims[0], ax=axes, orientation="vertical", fraction=0.02, pad=0.04
+        )
 
         # Add a title
         fig.suptitle(title)
@@ -193,7 +199,9 @@ if __name__ == "__main__":
     # Path to the MATLAB function
     current_file_path = path.abspath(__file__)
     current_dir = path.dirname(current_file_path)
-    MVADR_matlab_path = path.join(current_dir, "../matlab_multivar/matlab_multivar/ADR_Driver_func.m")
+    MVADR_matlab_path = path.join(
+        current_dir, "../matlab_multivar/matlab_multivar/ADR_Driver_func.m"
+    )
 
     # Run the MATLAB function
     solution = pde_solver.run_script(

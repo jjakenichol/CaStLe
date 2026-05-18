@@ -41,7 +41,9 @@ from tigramite.independence_tests.independence_tests_base import CondIndTest
 from typing import Dict, Optional, List, Tuple, Union
 
 
-def convert_string_assumptions_to_indices(analysis_variables, variable_link_assumptions):
+def convert_string_assumptions_to_indices(
+    analysis_variables, variable_link_assumptions
+):
     """
     Converts link assumptions defined in terms of variable names to indices.
 
@@ -115,7 +117,12 @@ def pretty_print_link_assumptions(link_assumptions_indices):
     print("variable_link_assumptions = {")
     for child_idx, parent_links in link_assumptions_indices.items():
         print(f"    {child_idx}: {{", end="")
-        parent_links_str = ", ".join([f'({parent_idx}, {lag}): "{link_type}"' for (parent_idx, lag), link_type in parent_links.items()])
+        parent_links_str = ", ".join(
+            [
+                f'({parent_idx}, {lag}): "{link_type}"'
+                for (parent_idx, lag), link_type in parent_links.items()
+            ]
+        )
         print(f"{parent_links_str}}},")
     print("}")
 
@@ -153,7 +160,9 @@ def print_significant_links(
     """
     N = val_matrix.shape[0]
     assert N % 9 == 0, "The number of variables (N) must be divisible by 9."
-    assert (p_matrix is not None) ^ (q_matrix is not None), "Either p_matrix or q_matrix must be provided, but not both."
+    assert (p_matrix is not None) ^ (
+        q_matrix is not None
+    ), "Either p_matrix or q_matrix must be provided, but not both."
 
     if var_names is None:
         var_names = list(range(N))
@@ -171,11 +180,17 @@ def print_significant_links(
     matrix_type = "p-value" if p_matrix is not None else "q-value"
     matrix = p_matrix if p_matrix is not None else q_matrix
 
-    print("## Significant links at alpha = %s using %s matrix:" % (alpha_level, matrix_type))
+    print(
+        "## Significant links at alpha = %s using %s matrix:"
+        % (alpha_level, matrix_type)
+    )
     for j in range(N):
         if not include_noncenters and (j - 4) % 9 != 0:
             continue
-        links = {(p[0], -p[1]): np.abs(val_matrix[p[0], j, abs(p[1])]) for p in zip(*np.where(sig_links[:, j, :]))}
+        links = {
+            (p[0], -p[1]): np.abs(val_matrix[p[0], j, abs(p[1])])
+            for p in zip(*np.where(sig_links[:, j, :]))
+        }
         # Sort by variable index
         sorted_links = sorted(links)
         n_links = len(links)
@@ -212,7 +227,11 @@ def get_last_n_indices(array1: list, array2: list) -> list:
     """
     N = len(array2)
     start_index = len(array1) - N
-    return list(range(start_index, len(array1))) if start_index >= 0 else list(range(len(array1)))
+    return (
+        list(range(start_index, len(array1)))
+        if start_index >= 0
+        else list(range(len(array1)))
+    )
 
 
 def get_mixed_var_graph(given_graph, given_val_matrix, var_idx):
@@ -249,7 +268,9 @@ def char_range(c1=None, c2=None, num_characters=None):
         sys.exit(1)
 
 
-def get_stencil_graph_from_coefficients(local_coefficients: np.ndarray, verbose=False) -> Tuple[np.ndarray, np.ndarray]:
+def get_stencil_graph_from_coefficients(
+    local_coefficients: np.ndarray, verbose=False
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generates a stencil graph and a stencil value matrix from local coefficients.
 
@@ -275,7 +296,9 @@ def get_stencil_graph_from_coefficients(local_coefficients: np.ndarray, verbose=
     - The first dimension of both returned arrays represents the source variable and spatial relation, the second dimension represents the target variable and spatial relation, and the third dimension is used for separating the graph representation and value matrix.
     """
     num_variables = local_coefficients.shape[0]
-    stencil_graph = np.full(shape=(9 * num_variables, 9 * num_variables, 2), fill_value="", dtype="<U3")
+    stencil_graph = np.full(
+        shape=(9 * num_variables, 9 * num_variables, 2), fill_value="", dtype="<U3"
+    )
     stencil_val_matrix = np.full(
         shape=(9 * num_variables, 9 * num_variables, 2),
         fill_value=0.0,
@@ -419,8 +442,12 @@ def get_vectors(stencil_graph: np.ndarray, stencil_val_matrix: np.ndarray) -> li
     """
     # Assertions to ensure correct input shapes
     assert stencil_graph.ndim == 3, "stencil_graph must be a 3D numpy array"
-    assert stencil_graph.shape[0] % 9 == 0, "The first dimension of stencil_graph must be a multiple of 9"
-    assert stencil_graph.shape == stencil_val_matrix.shape, "stencil_graph and stencil_val_matrix must have the same shape"
+    assert (
+        stencil_graph.shape[0] % 9 == 0
+    ), "The first dimension of stencil_graph must be a multiple of 9"
+    assert (
+        stencil_graph.shape == stencil_val_matrix.shape
+    ), "stencil_graph and stencil_val_matrix must have the same shape"
 
     # Determine the number of species
     num_species = stencil_graph.shape[0] // 9
@@ -441,7 +468,9 @@ def get_vectors(stencil_graph: np.ndarray, stencil_val_matrix: np.ndarray) -> li
     vectors = [
         (dependence_dict[dependence], angle_dict[dependence])
         for dependence in dependence_dict.keys()
-        if not (dependence[0] in centers and dependence[1] in centers and dependence[2] == 1)
+        if not (
+            dependence[0] in centers and dependence[1] in centers and dependence[2] == 1
+        )
     ]
 
     return vectors
@@ -642,7 +671,9 @@ def get_angle_from_stencil(stencil_graph: np.ndarray, val_matrix: np.ndarray):
     return combine_angles(vectors)
 
 
-def get_angle_from_stencil_nonnegative(stencil_graph: np.ndarray, val_matrix: np.ndarray):
+def get_angle_from_stencil_nonnegative(
+    stencil_graph: np.ndarray, val_matrix: np.ndarray
+):
     """
     Computes the resultant angle from the stencil graph and value matrix using the nonnegative combine angles function.
 
@@ -700,7 +731,9 @@ def angle_difference(angle1: float, angle2: float) -> float:
     return 180 - abs(abs(angle1 - angle2) - 180)
 
 
-def create_random_stencil_graph(num_links: int, num_variables: int, random_seed: int = None) -> Tuple[np.ndarray, np.ndarray]:
+def create_random_stencil_graph(
+    num_links: int, num_variables: int, random_seed: int = None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Creates a random stencil graph and value matrix with a specified number of links.
 
@@ -744,7 +777,9 @@ def create_random_stencil_graph(num_links: int, num_variables: int, random_seed:
     return stencil_graph, stencil_val_matrix
 
 
-def create_custom_stencil_graph(parent_indices: List[List[Union[int, Tuple[int, float]]]], verbose: bool = False) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+def create_custom_stencil_graph(
+    parent_indices: List[List[Union[int, Tuple[int, float]]]], verbose: bool = False
+) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
     """
     Creates a custom stencil graph and value matrix based on the provided parent node indices and coefficients.
 
@@ -791,11 +826,20 @@ def create_custom_stencil_graph(parent_indices: List[List[Union[int, Tuple[int, 
     # Validate input
     if not all(isinstance(sublist, list) for sublist in parent_indices):
         raise ValueError("parent_indices must be a list of lists.")
-    if any(not all(isinstance(item, (int, tuple)) for item in sublist) for sublist in parent_indices):
-        raise ValueError("Each sublist in parent_indices must contain integers or tuples of (int, float).")
+    if any(
+        not all(isinstance(item, (int, tuple)) for item in sublist)
+        for sublist in parent_indices
+    ):
+        raise ValueError(
+            "Each sublist in parent_indices must contain integers or tuples of (int, float)."
+        )
     if any(isinstance(item, tuple) for sublist in parent_indices for item in sublist):
-        if not all(isinstance(item, tuple) for sublist in parent_indices for item in sublist):
-            raise ValueError("All parents must have coefficients if any parent has a coefficient.")
+        if not all(
+            isinstance(item, tuple) for sublist in parent_indices for item in sublist
+        ):
+            raise ValueError(
+                "All parents must have coefficients if any parent has a coefficient."
+            )
 
     # Calculate the size of the arrays based on the number of variables
     size = 9 * num_variables
@@ -804,7 +848,9 @@ def create_custom_stencil_graph(parent_indices: List[List[Union[int, Tuple[int, 
     stencil_graph = np.full((size, size, 2), "", dtype=object)
 
     # Check if coefficients are provided
-    coefficients_provided = any(isinstance(item, tuple) for sublist in parent_indices for item in sublist)
+    coefficients_provided = any(
+        isinstance(item, tuple) for sublist in parent_indices for item in sublist
+    )
 
     # Initialize stencil_val_matrix as an array of zeros if coefficients are provided
     if coefficients_provided:
@@ -832,7 +878,9 @@ def create_custom_stencil_graph(parent_indices: List[List[Union[int, Tuple[int, 
                     if coefficient is not None:
                         stencil_val_matrix[parent_index, child_index, 1] = coefficient
                     else:
-                        raise ValueError("All parents must have coefficients if any parent has a coefficient.")
+                        raise ValueError(
+                            "All parents must have coefficients if any parent has a coefficient."
+                        )
 
     if verbose:
         print("Stencil Graph:\n", stencil_graph)
@@ -889,7 +937,9 @@ def inverse_fisher_z_transform(z: float) -> float:
     return (np.exp(2 * z) - 1) / (np.exp(2 * z) + 1)
 
 
-def construct_reaction_graph(stencil_graph: np.ndarray, stencil_val_matrix: Optional[np.ndarray] = None) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+def construct_reaction_graph(
+    stencil_graph: np.ndarray, stencil_val_matrix: Optional[np.ndarray] = None
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     """
     Construct a reaction graph from the given stencil_graph and stencil_val_matrix.
 
@@ -913,9 +963,13 @@ def construct_reaction_graph(stencil_graph: np.ndarray, stencil_val_matrix: Opti
     """
     # Assertions to ensure correct input shapes
     assert stencil_graph.ndim == 3, "stencil_graph must be a 3D numpy array"
-    assert stencil_graph.shape[0] % 9 == 0, "The first dimension of stencil_graph must be a multiple of 9"
+    assert (
+        stencil_graph.shape[0] % 9 == 0
+    ), "The first dimension of stencil_graph must be a multiple of 9"
     if stencil_val_matrix is not None:
-        assert stencil_graph.shape == stencil_val_matrix.shape, "stencil_graph and stencil_val_matrix must have the same shape"
+        assert (
+            stencil_graph.shape == stencil_val_matrix.shape
+        ), "stencil_graph and stencil_val_matrix must have the same shape"
 
     # Determine the number of species
     num_species = stencil_graph.shape[0] // 9
@@ -929,21 +983,30 @@ def construct_reaction_graph(stencil_graph: np.ndarray, stencil_val_matrix: Opti
     for source_species in range(num_species):
         for target_species in range(num_species):
             source_start = source_species * 9
-            target_center = target_species * 9 + 4  # The center of each neighborhood is the 4th element in the set of 9
+            target_center = (
+                target_species * 9 + 4
+            )  # The center of each neighborhood is the 4th element in the set of 9
 
             # Check for links between the source and target species
-            if "-->" in stencil_graph[source_start : source_start + 9, target_center, 1]:
+            if (
+                "-->"
+                in stencil_graph[source_start : source_start + 9, target_center, 1]
+            ):
                 reaction_graph[source_species, target_species, 1] = "-->"
 
                 if stencil_val_matrix is not None:
                     # Combine values from the val_matrix using Fisher's z-transformation
-                    values = stencil_val_matrix[source_start : source_start + 9, target_center, 1]
+                    values = stencil_val_matrix[
+                        source_start : source_start + 9, target_center, 1
+                    ]
                     non_zero_values = values[values != 0]
                     if len(non_zero_values) > 0:
                         z_values = fisher_z_transform(non_zero_values)
                         mean_z = np.mean(z_values)
                         combined_value = inverse_fisher_z_transform(mean_z)
-                        reaction_val_matrix[source_species, target_species, 1] = combined_value
+                        reaction_val_matrix[source_species, target_species, 1] = (
+                            combined_value
+                        )
 
     if stencil_val_matrix is not None:
         return reaction_graph, reaction_val_matrix
@@ -965,9 +1028,13 @@ def summarize_stencil(stencil_graph, stencil_val_matrix=None):
     """
     # Assertions to ensure correct input shapes
     assert stencil_graph.ndim == 3, "stencil_graph must be a 3D numpy array"
-    assert stencil_graph.shape[0] % 9 == 0, "The first dimension of stencil_graph must be a multiple of 9"
+    assert (
+        stencil_graph.shape[0] % 9 == 0
+    ), "The first dimension of stencil_graph must be a multiple of 9"
     if stencil_val_matrix is not None:
-        assert stencil_graph.shape == stencil_val_matrix.shape, "stencil_graph and stencil_val_matrix must have the same shape"
+        assert (
+            stencil_graph.shape == stencil_val_matrix.shape
+        ), "stencil_graph and stencil_val_matrix must have the same shape"
 
     # Determine the number of species
     num_species = stencil_graph.shape[0] // 9
@@ -992,7 +1059,10 @@ def summarize_stencil(stencil_graph, stencil_val_matrix=None):
 
                         if stencil_val_matrix is not None:
                             # Combine values from the val_matrix using Fisher's z-transformation
-                            values = np.append(values, stencil_val_matrix[source_index, target_index, 1])
+                            values = np.append(
+                                values,
+                                stencil_val_matrix[source_index, target_index, 1],
+                            )
             non_zero_values = values[values != 0]
             if len(non_zero_values) > 0:
                 z_values = fisher_z_transform(non_zero_values)
@@ -1006,7 +1076,9 @@ def summarize_stencil(stencil_graph, stencil_val_matrix=None):
         return summary_graph
 
 
-def analyze_stencil_graphs(stencil_graph: np.ndarray, stencil_val_matrix: np.ndarray) -> Tuple:
+def analyze_stencil_graphs(
+    stencil_graph: np.ndarray, stencil_val_matrix: np.ndarray
+) -> Tuple:
     """
     Constructs and analyzes the reaction graph and summarized stencil graph from the given stencil graph and value matrix.
 
@@ -1028,10 +1100,19 @@ def analyze_stencil_graphs(stencil_graph: np.ndarray, stencil_val_matrix: np.nda
                - summary_stencil_val_matrix (np.ndarray): A 3D numpy array of shape (9, 9, 2) containing combined values for the summarized dependencies.
     """
     # TODO: Write a version that outputs a separate spatial-stencil for each species.
-    reaction_graph, reaction_val_matrix = construct_reaction_graph(stencil_graph, stencil_val_matrix)
-    summary_stencil, summary_stencil_val_matrix = summarize_stencil(stencil_graph, stencil_val_matrix)
+    reaction_graph, reaction_val_matrix = construct_reaction_graph(
+        stencil_graph, stencil_val_matrix
+    )
+    summary_stencil, summary_stencil_val_matrix = summarize_stencil(
+        stencil_graph, stencil_val_matrix
+    )
 
-    return reaction_graph, reaction_val_matrix, summary_stencil, summary_stencil_val_matrix
+    return (
+        reaction_graph,
+        reaction_val_matrix,
+        summary_stencil,
+        summary_stencil_val_matrix,
+    )
 
 
 def get_species_spatial_graphs(stencil_graph, stencil_val_matrix=None):
@@ -1060,9 +1141,13 @@ def get_species_spatial_graphs(stencil_graph, stencil_val_matrix=None):
     """
     # Assertions to ensure correct input shapes
     assert stencil_graph.ndim == 3, "stencil_graph must be a 3D numpy array"
-    assert stencil_graph.shape[0] % 9 == 0, "The first dimension of stencil_graph must be a multiple of 9"
+    assert (
+        stencil_graph.shape[0] % 9 == 0
+    ), "The first dimension of stencil_graph must be a multiple of 9"
     if stencil_val_matrix is not None:
-        assert stencil_graph.shape == stencil_val_matrix.shape, "stencil_graph and stencil_val_matrix must have the same shape"
+        assert (
+            stencil_graph.shape == stencil_val_matrix.shape
+        ), "stencil_graph and stencil_val_matrix must have the same shape"
 
     # Determine the number of species
     num_species = stencil_graph.shape[0] // 9
@@ -1085,9 +1170,13 @@ def get_species_spatial_graphs(stencil_graph, stencil_val_matrix=None):
 
                     # Check for links between the source and target positions
                     if "-->" in stencil_graph[source_index, target_index, 1]:
-                        graphs[source_species, target_species][source_pos, target_pos, 1] = "-->"
+                        graphs[source_species, target_species][
+                            source_pos, target_pos, 1
+                        ] = "-->"
                         if stencil_val_matrix is not None:
-                            val_matrices[source_species, target_species][source_pos, target_pos, 1] = stencil_val_matrix[source_index, target_index, 1]
+                            val_matrices[source_species, target_species][
+                                source_pos, target_pos, 1
+                            ] = stencil_val_matrix[source_index, target_index, 1]
 
     if stencil_val_matrix is not None:
         return graphs, val_matrices
@@ -1379,7 +1468,11 @@ def plot_reaction_graph(
         fig_ax=(fig, ax),
         graph=reaction_graph,
         val_matrix=reaction_val_matrix,
-        var_names=var_names if var_names else [chr(i) for i in range(97, 97 + reaction_graph.shape[0])],
+        var_names=(
+            var_names
+            if var_names
+            else [chr(i) for i in range(97, 97 + reaction_graph.shape[0])]
+        ),
         node_aspect=node_aspect,
         link_colorbar_label=link_colorbar_label,
         node_colorbar_label=node_colorbar_label,
@@ -1511,7 +1604,9 @@ def convert_element_index_to_matrix_coordinate(index: int, num_cols: int) -> Tup
     return row, col
 
 
-def convert_matrix_coordinate_to_element_index(grid_row: int, grid_col: int, num_cols: int) -> int:
+def convert_matrix_coordinate_to_element_index(
+    grid_row: int, grid_col: int, num_cols: int
+) -> int:
     """
     Converts a row and column position in a matrix to an index.
 
@@ -1535,7 +1630,9 @@ def convert_matrix_coordinate_to_element_index(grid_row: int, grid_col: int, num
     return index
 
 
-def convert_matrix_coordinate_to_variable_index(grid_row: int, grid_col: int, num_cols: int, variable: int) -> int:
+def convert_matrix_coordinate_to_variable_index(
+    grid_row: int, grid_col: int, num_cols: int, variable: int
+) -> int:
     """
     Converts a row and column position in a matrix to a variable index.
 
@@ -1561,7 +1658,9 @@ def convert_matrix_coordinate_to_variable_index(grid_row: int, grid_col: int, nu
     return index
 
 
-def convert_element_index_to_variable_index(element_index: int, num_cols: int, variable: int = 0) -> int:
+def convert_element_index_to_variable_index(
+    element_index: int, num_cols: int, variable: int = 0
+) -> int:
     """
     Converts an element index to a variable index in a matrix.
 
@@ -1587,7 +1686,9 @@ def convert_element_index_to_variable_index(element_index: int, num_cols: int, v
     return var_index
 
 
-def get_moore_neighborhood_indices(center_index: int, num_cols: int, num_rows: int, variable: int) -> list:
+def get_moore_neighborhood_indices(
+    center_index: int, num_cols: int, num_rows: int, variable: int
+) -> list:
     """
     Returns the indices of the Moore neighborhood for a given grid cell index in a toroidal grid.
 
@@ -1620,11 +1721,16 @@ def get_moore_neighborhood_indices(center_index: int, num_cols: int, num_rows: i
             # Append the neighboring cell index to the neighborhood list
             neighborhood.append(neighbor_index)
 
-    neighborhood = [convert_element_index_to_variable_index(index, num_cols, variable) for index in neighborhood]
+    neighborhood = [
+        convert_element_index_to_variable_index(index, num_cols, variable)
+        for index in neighborhood
+    ]
     return neighborhood
 
 
-def get_variable_array_from_dataset(dataset: xr.Dataset, variables_to_extract: list) -> np.ndarray:
+def get_variable_array_from_dataset(
+    dataset: xr.Dataset, variables_to_extract: list
+) -> np.ndarray:
     """
     A helper function that extracts specified variables from an xarray.Dataset and returns them as a 4D NumPy array.
 
@@ -1651,7 +1757,9 @@ def get_variable_array_from_dataset(dataset: xr.Dataset, variables_to_extract: l
     reference_dims = dataset[variables_to_extract[0]].dims
     for var_name in variables_to_extract:
         if dataset[var_name].dims != reference_dims:
-            raise ValueError(f"Variable {var_name} does not have the same dimensions as the reference variable.")
+            raise ValueError(
+                f"Variable {var_name} does not have the same dimensions as the reference variable."
+            )
 
     # Derive indices corresponding to time, lat, and lon.
     dims_lower = [d.lower() for d in reference_dims]
@@ -1660,16 +1768,22 @@ def get_variable_array_from_dataset(dataset: xr.Dataset, variables_to_extract: l
         i_lat = dims_lower.index("lat")
         i_lon = dims_lower.index("lon")
     except ValueError:
-        raise ValueError("Dataset variables must have dimensions with names including 'time', 'lat', and 'lon'")
+        raise ValueError(
+            "Dataset variables must have dimensions with names including 'time', 'lat', and 'lon'"
+        )
 
     # We now want to reorder the array to (lat, lon, time).
     permutation = (i_lat, i_lon, i_time)
 
     extracted_arrays = []
     for var_name in variables_to_extract:
-        arr = dataset[var_name].values  # Original shape (T, Y, X) if dims are (time, lat, lon)
+        arr = dataset[
+            var_name
+        ].values  # Original shape (T, Y, X) if dims are (time, lat, lon)
         if arr.ndim != 3:
-            raise ValueError(f"Variable {var_name} is expected to be 3D, but got shape {arr.shape}")
+            raise ValueError(
+                f"Variable {var_name} is expected to be 3D, but got shape {arr.shape}"
+            )
         arr_tp = np.transpose(arr, permutation)  # Now shape is (lat, lon, time)
         extracted_arrays.append(arr_tp)
 
@@ -1679,7 +1793,9 @@ def get_variable_array_from_dataset(dataset: xr.Dataset, variables_to_extract: l
     return stacked_array
 
 
-def map_stencil_graph_to_full_graph(stencil_graph: np.ndarray, grid_size: int, verbose=0) -> np.ndarray:
+def map_stencil_graph_to_full_graph(
+    stencil_graph: np.ndarray, grid_size: int, verbose=0
+) -> np.ndarray:
     """
     Map a stencil graph to a full graph based on the given parameters.
 
@@ -1721,12 +1837,16 @@ def map_stencil_graph_to_full_graph(stencil_graph: np.ndarray, grid_size: int, v
         for grid_col in range(grid_size):
             for child_var in range(n_variables):
                 # Compute full-graph column position, which is the full-graph child node's position.
-                full_graph_col = convert_element_index_to_variable_index(grid_idx, grid_size, child_var)
+                full_graph_col = convert_element_index_to_variable_index(
+                    grid_idx, grid_size, child_var
+                )
                 if verbose:
                     print("full_graph_col={}".format(full_graph_col))
                 for parent_var in range(n_variables):
                     # Get the child position's parents as rows in the full-graph
-                    neighborhood = get_moore_neighborhood_indices(full_graph_col, grid_size, grid_size, parent_var)
+                    neighborhood = get_moore_neighborhood_indices(
+                        full_graph_col, grid_size, grid_size, parent_var
+                    )
                     (
                         top_left_row,
                         top_row,
@@ -1740,29 +1860,83 @@ def map_stencil_graph_to_full_graph(stencil_graph: np.ndarray, grid_size: int, v
                     ) = neighborhood
 
                     # Access the necessary value from the stencil and assign it to the correct parent_row, child_col in the full-graph
-                    full_graph[top_left_row, full_graph_col, 1] = stencil_graph[0 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[top_row, full_graph_col, 1] = stencil_graph[1 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[top_right_row, full_graph_col, 1] = stencil_graph[2 + 9 * parent_var, 4 + 9 * child_var, 1]
+                    full_graph[top_left_row, full_graph_col, 1] = stencil_graph[
+                        0 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[top_row, full_graph_col, 1] = stencil_graph[
+                        1 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[top_right_row, full_graph_col, 1] = stencil_graph[
+                        2 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
 
-                    full_graph[left_row, full_graph_col, 1] = stencil_graph[3 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[center_row, full_graph_col, 1] = stencil_graph[4 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[right_row, full_graph_col, 1] = stencil_graph[5 + 9 * parent_var, 4 + 9 * child_var, 1]
+                    full_graph[left_row, full_graph_col, 1] = stencil_graph[
+                        3 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[center_row, full_graph_col, 1] = stencil_graph[
+                        4 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[right_row, full_graph_col, 1] = stencil_graph[
+                        5 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
 
-                    full_graph[bot_left_row, full_graph_col, 1] = stencil_graph[6 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[bot_row, full_graph_col, 1] = stencil_graph[7 + 9 * parent_var, 4 + 9 * child_var, 1]
-                    full_graph[bot_right_row, full_graph_col, 1] = stencil_graph[8 + 9 * parent_var, 4 + 9 * child_var, 1]
+                    full_graph[bot_left_row, full_graph_col, 1] = stencil_graph[
+                        6 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[bot_row, full_graph_col, 1] = stencil_graph[
+                        7 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
+                    full_graph[bot_right_row, full_graph_col, 1] = stencil_graph[
+                        8 + 9 * parent_var, 4 + 9 * child_var, 1
+                    ]
 
                     if verbose:
                         print("child={}, parent={}".format(child_var, parent_var))
-                        print("TL={}".format(stencil_graph[0 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("T={}".format(stencil_graph[1 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("TR={}".format(stencil_graph[2 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("L={}".format(stencil_graph[3 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("C={}".format(stencil_graph[4 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("R={}".format(stencil_graph[5 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("BL={}".format(stencil_graph[6 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("B={}".format(stencil_graph[7 + 9 * parent_var, 4 + 9 * child_var, 1]))
-                        print("BR={}".format(stencil_graph[8 + 9 * parent_var, 4 + 9 * child_var, 1]))
+                        print(
+                            "TL={}".format(
+                                stencil_graph[0 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "T={}".format(
+                                stencil_graph[1 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "TR={}".format(
+                                stencil_graph[2 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "L={}".format(
+                                stencil_graph[3 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "C={}".format(
+                                stencil_graph[4 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "R={}".format(
+                                stencil_graph[5 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "BL={}".format(
+                                stencil_graph[6 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "B={}".format(
+                                stencil_graph[7 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
+                        print(
+                            "BR={}".format(
+                                stencil_graph[8 + 9 * parent_var, 4 + 9 * child_var, 1]
+                            )
+                        )
 
                         print("TL={}".format(top_left_row))
                         print("T={}".format(top_row))
@@ -1779,7 +1953,13 @@ def map_stencil_graph_to_full_graph(stencil_graph: np.ndarray, grid_size: int, v
     return full_graph
 
 
-def extract_stencil_from_full_graph(full_graph: np.ndarray, grid_size: int, n_variables: int, node_position: tuple = None, verbose=0) -> np.ndarray:
+def extract_stencil_from_full_graph(
+    full_graph: np.ndarray,
+    grid_size: int,
+    n_variables: int,
+    node_position: tuple = None,
+    verbose=0,
+) -> np.ndarray:
     """
     TODO: Test this function.
     Extract the stencil graph from the full graph based on the given parameters.
@@ -1820,11 +2000,15 @@ def extract_stencil_from_full_graph(full_graph: np.ndarray, grid_size: int, n_va
     grid_idx = convert_matrix_coordinate_to_element_index(row, col, grid_size)
 
     for child_var in range(n_variables):
-        full_graph_col = convert_element_index_to_variable_index(grid_idx, grid_size, child_var)
+        full_graph_col = convert_element_index_to_variable_index(
+            grid_idx, grid_size, child_var
+        )
         if verbose:
             print("full_graph_col={}".format(full_graph_col))
         for parent_var in range(n_variables):
-            neighborhood = get_moore_neighborhood_indices(grid_idx, grid_size, grid_size, parent_var)
+            neighborhood = get_moore_neighborhood_indices(
+                grid_idx, grid_size, grid_size, parent_var
+            )
             (
                 top_left_row,
                 top_row,
@@ -1837,17 +2021,35 @@ def extract_stencil_from_full_graph(full_graph: np.ndarray, grid_size: int, n_va
                 bot_right_row,
             ) = neighborhood
 
-            stencil_graph[0 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[top_left_row, full_graph_col, 1]
-            stencil_graph[1 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[top_row, full_graph_col, 1]
-            stencil_graph[2 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[top_right_row, full_graph_col, 1]
+            stencil_graph[0 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                top_left_row, full_graph_col, 1
+            ]
+            stencil_graph[1 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                top_row, full_graph_col, 1
+            ]
+            stencil_graph[2 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                top_right_row, full_graph_col, 1
+            ]
 
-            stencil_graph[3 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[left_row, full_graph_col, 1]
-            stencil_graph[4 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[center_row, full_graph_col, 1]
-            stencil_graph[5 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[right_row, full_graph_col, 1]
+            stencil_graph[3 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                left_row, full_graph_col, 1
+            ]
+            stencil_graph[4 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                center_row, full_graph_col, 1
+            ]
+            stencil_graph[5 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                right_row, full_graph_col, 1
+            ]
 
-            stencil_graph[6 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[bot_left_row, full_graph_col, 1]
-            stencil_graph[7 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[bot_row, full_graph_col, 1]
-            stencil_graph[8 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[bot_right_row, full_graph_col, 1]
+            stencil_graph[6 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                bot_left_row, full_graph_col, 1
+            ]
+            stencil_graph[7 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                bot_row, full_graph_col, 1
+            ]
+            stencil_graph[8 + 9 * parent_var, 4 + 9 * child_var, 1] = full_graph[
+                bot_right_row, full_graph_col, 1
+            ]
 
             if verbose:
                 print("child={}, parent={}".format(child_var, parent_var))
@@ -1894,7 +2096,9 @@ def extract_stencil_from_full_graph(full_graph: np.ndarray, grid_size: int, n_va
 # np.all((tmp_true_stencil == tmp_stencil_graph_true))
 
 
-def concatenate_timeseries_wrapping(data, rows_inverted, include_cell_index_column=False):
+def concatenate_timeseries_wrapping(
+    data, rows_inverted, include_cell_index_column=False
+):
     """
     Concatenates timeseries data from a 2D grid with wrapping at edges, optionally including a cell index column.
 
@@ -1972,7 +2176,9 @@ def concatenate_timeseries_wrapping(data, rows_inverted, include_cell_index_colu
     return concatenated_data
 
 
-def concatenate_timeseries_nonwrapping(data, rows_inverted, include_cell_index_column=False):
+def concatenate_timeseries_nonwrapping(
+    data, rows_inverted, include_cell_index_column=False
+):
     """
     Concatenates timeseries data from a 2D grid without wrapping at edges, optionally including a cell index column.
 
@@ -2086,9 +2292,13 @@ def threshold_graph(
     """
     # Ensure the input arrays have the same shape if they are provided
     if q_matrix is not None:
-        assert graph.shape == val_matrix.shape == q_matrix.shape, "graph, val_matrix, and q_matrix must have the same shape"
+        assert (
+            graph.shape == val_matrix.shape == q_matrix.shape
+        ), "graph, val_matrix, and q_matrix must have the same shape"
     if p_matrix is not None:
-        assert graph.shape == val_matrix.shape == p_matrix.shape, "graph, val_matrix, and p_matrix must have the same shape"
+        assert (
+            graph.shape == val_matrix.shape == p_matrix.shape
+        ), "graph, val_matrix, and p_matrix must have the same shape"
 
     # Create copies of the input arrays to avoid modifying the originals
     thresholded_val_matrix = np.copy(val_matrix)
@@ -2150,9 +2360,13 @@ def get_MV_reduced_space(data, dependencies_wrap, rows_inverted):
     for variable in range(data.shape[0]):
         var_data = data[variable, :, :, :]
         if dependencies_wrap:
-            concatenated_data = concatenate_timeseries_wrapping(var_data, rows_inverted=rows_inverted, include_cell_index_column=False)
+            concatenated_data = concatenate_timeseries_wrapping(
+                var_data, rows_inverted=rows_inverted, include_cell_index_column=False
+            )
         else:
-            concatenated_data = concatenate_timeseries_nonwrapping(var_data, rows_inverted=rows_inverted, include_cell_index_column=False)
+            concatenated_data = concatenate_timeseries_nonwrapping(
+                var_data, rows_inverted=rows_inverted, include_cell_index_column=False
+            )
         reduced_data[variable] = concatenated_data
     # Combine reduced spaces
     reduced_space = np.concatenate(reduced_data, axis=1)
@@ -2204,42 +2418,70 @@ def verify_graph_against_assumptions(graph: np.ndarray, link_assumptions: dict) 
     for parent_i in range(node_count):
         for child_j in range(node_count):
             for lag in range(tau_max + 1):
-                if child_j in link_assumptions and (parent_i, -lag) in link_assumptions[child_j]:
+                if (
+                    child_j in link_assumptions
+                    and (parent_i, -lag) in link_assumptions[child_j]
+                ):
                     link_type = link_assumptions[child_j][(parent_i, -lag)]
                     if link_type == "o-o":
                         # An undirected link should exist between parent_i and child_j at the given lag
                         if graph[parent_i, child_j, lag] != "o-o":
-                            print(f"Failed assumption: {parent_i} o-o {child_j} at lag {lag}")
+                            print(
+                                f"Failed assumption: {parent_i} o-o {child_j} at lag {lag}"
+                            )
                             return False
                     elif link_type == "-->":
                         # A directed link should exist from parent_i to child_j at the given lag
-                        if graph[parent_i, child_j, lag] != "-->" or graph[child_j, parent_i, lag] != "<--":
-                            print(f"Failed assumption: {parent_i} --> {child_j} at lag {lag}")
+                        if (
+                            graph[parent_i, child_j, lag] != "-->"
+                            or graph[child_j, parent_i, lag] != "<--"
+                        ):
+                            print(
+                                f"Failed assumption: {parent_i} --> {child_j} at lag {lag}"
+                            )
                             return False
                     elif link_type == "<--":
                         # A directed link should exist from child_j to parent_i at the given lag
-                        if graph[child_j, parent_i, lag] != "-->" or graph[parent_i, child_j, lag] != "<--":
-                            print(f"Failed assumption: {child_j} <-- {parent_i} at lag {lag}")
+                        if (
+                            graph[child_j, parent_i, lag] != "-->"
+                            or graph[parent_i, child_j, lag] != "<--"
+                        ):
+                            print(
+                                f"Failed assumption: {child_j} <-- {parent_i} at lag {lag}"
+                            )
                             return False
                     elif link_type == "o?o":
                         # An undirected or no link should exist between parent_i and child_j at the given lag
-                        if graph[parent_i, child_j, lag] not in ["", "o-o", "<--", "-->"]:
-                            print(f"Failed assumption: {parent_i} o?o {child_j} at lag {lag}")
+                        if graph[parent_i, child_j, lag] not in [
+                            "",
+                            "o-o",
+                            "<--",
+                            "-->",
+                        ]:
+                            print(
+                                f"Failed assumption: {parent_i} o?o {child_j} at lag {lag}"
+                            )
                             return False
                     elif link_type == "-?>":
                         # A possible directed link should exist from parent_i to child_j at the given lag
                         if graph[parent_i, child_j, lag] not in ["", "-->"]:
-                            print(f"Failed assumption: {parent_i} -?> {child_j} at lag {lag}")
+                            print(
+                                f"Failed assumption: {parent_i} -?> {child_j} at lag {lag}"
+                            )
                             return False
                     elif link_type == "<?-":
                         # A possible directed link should exist from child_j to parent_i at the given lag
                         if graph[child_j, parent_i, lag] not in ["", "-->"]:
-                            print(f"Failed assumption: {child_j} <?- {parent_i} at lag {lag}")
+                            print(
+                                f"Failed assumption: {child_j} <?- {parent_i} at lag {lag}"
+                            )
                             return False
                 else:
                     # If no link assumption is specified, no link should exist
                     if graph[parent_i, child_j, lag] != "":
-                        print(f"Failed assumption: No link should exist between {parent_i} and {child_j} at lag {lag}")
+                        print(
+                            f"Failed assumption: No link should exist between {parent_i} and {child_j} at lag {lag}"
+                        )
                         return False
 
     return True
@@ -2249,7 +2491,9 @@ def build_link_assumptions(
     node_count: int,
     min_tau: int,
     max_tau: int,
-    intervariable_link_assumptions: Optional[Dict[int, Dict[Tuple[int, int], str]]] = None,
+    intervariable_link_assumptions: Optional[
+        Dict[int, Dict[Tuple[int, int], str]]
+    ] = None,
     allow_center_directed_links: bool = False,
 ) -> Dict[int, Dict[Tuple[int, int], str]]:
     """
@@ -2290,7 +2534,9 @@ def build_link_assumptions(
     link_assumptions = {}
 
     for child_j in range(node_count):
-        if child_j in possible_children:  # only nodes in possible_children can be children
+        if (
+            child_j in possible_children
+        ):  # only nodes in possible_children can be children
             link_assumptions[child_j] = {}
             for parent_i in range(node_count):
                 for lag in range(min_tau, max_tau + 1):
@@ -2299,11 +2545,18 @@ def build_link_assumptions(
                         child_intervar_link_idx = int((child_j - 4) / 9)
                         parent_intervar_link_idx = math.floor(parent_i / 9)
                         try:
-                            link_assumptions[child_j][(parent_i, -lag)] = intervariable_link_assumptions[child_intervar_link_idx][(parent_intervar_link_idx, -lag)]
+                            link_assumptions[child_j][(parent_i, -lag)] = (
+                                intervariable_link_assumptions[child_intervar_link_idx][
+                                    (parent_intervar_link_idx, -lag)
+                                ]
+                            )
                         except KeyError:
                             # No link was specified, so nothing should be specified here.
                             pass
-                    elif parent_i in possible_children and not allow_center_directed_links:
+                    elif (
+                        parent_i in possible_children
+                        and not allow_center_directed_links
+                    ):
                         # Links between specific variables must be undirected
                         link_assumptions[child_j][(parent_i, -lag)] = "o?o"
                     else:
@@ -2316,7 +2569,9 @@ def build_link_assumptions(
     return link_assumptions
 
 
-def get_graph_from_structure_model(structure_model: StructureModel, include_val_matrix=True) -> Union[tuple, list]:
+def get_graph_from_structure_model(
+    structure_model: StructureModel, include_val_matrix=True
+) -> Union[tuple, list]:
     """
     Convert a causalnex.structure.StructureModel to a string-graph and val_matrix in the style of the Tigramite library.
 
@@ -2373,10 +2628,14 @@ def get_graph_from_structure_model(structure_model: StructureModel, include_val_
             # lag = child_lag - parent_lag
             lag = parent_lag - child_lag
             if lag < 0:
-                raise ValueError(f"Computed negative lag: parent_lag={parent_lag}, child_lag={child_lag}")
+                raise ValueError(
+                    f"Computed negative lag: parent_lag={parent_lag}, child_lag={child_lag}"
+                )
             graph[parent_var, child_var, lag] = "-->"
             if parent_lag == 0:
-                graph[child_var, parent_var, 0] = "<--"  # <-- used because of what Tigramite does.
+                graph[child_var, parent_var, 0] = (
+                    "<--"  # <-- used because of what Tigramite does.
+                )
             if include_val_matrix:
                 val_matrix[parent_var, child_var, lag] = child_weight
                 if parent_lag == 0:
@@ -2512,14 +2771,20 @@ def mv_CaStLe_PC(
       the function defaults to its original behavior of creating a naive stencil with undirected or directed links based on the `allow_center_directed_links` flag.
     """
     assert len(data.shape) == 4, "data needs to have 4 dimensions (variable_n, X, Y, T)"
-    assert graph_p_threshold < 1.0, "graph_p_threshold must be less than 1.0, otherwise illegal links are output."
+    assert (
+        graph_p_threshold < 1.0
+    ), "graph_p_threshold must be less than 1.0, otherwise illegal links are output."
 
     max_tau = 1
 
-    reduced_space = get_MV_reduced_space(data=data, dependencies_wrap=dependencies_wrap, rows_inverted=rows_inverted)
+    reduced_space = get_MV_reduced_space(
+        data=data, dependencies_wrap=dependencies_wrap, rows_inverted=rows_inverted
+    )
 
     if verbose:
-        print(f"Data concatenated into Moore neighborhood space (shape{reduced_space.shape})...")
+        print(
+            f"Data concatenated into Moore neighborhood space (shape{reduced_space.shape})..."
+        )
 
     # Only estimate parents of specific variables. This sets up link_assumptions for standard CaStLe, without any known varaible assumptions.
     # Get possible children, which are every 9th node after the 5th (index 4)
@@ -2550,7 +2815,9 @@ def mv_CaStLe_PC(
     )
     if fdr_method:
         if fdr_method == "bh":
-            fdr_method = "fdr_bh"  # Rename to conform to tigramite's expected convention.
+            fdr_method = (
+                "fdr_bh"  # Rename to conform to tigramite's expected convention.
+            )
         q_matrix = pcmci.get_corrected_pvalues(
             p_matrix=results["p_matrix"],
             tau_min=min_tau,
@@ -2570,18 +2837,22 @@ def mv_CaStLe_PC(
 
     if strength_threshold:
         if fdr_method:
-            results["val_matrix"], results["graph"], results["q_matrix"] = threshold_graph(
-                graph=results["graph"],
-                val_matrix=results["val_matrix"],
-                q_matrix=results["q_matrix"],
-                strength_threshold=strength_threshold,
+            results["val_matrix"], results["graph"], results["q_matrix"] = (
+                threshold_graph(
+                    graph=results["graph"],
+                    val_matrix=results["val_matrix"],
+                    q_matrix=results["q_matrix"],
+                    strength_threshold=strength_threshold,
+                )
             )
         else:
-            results["val_matrix"], results["graph"], results["p_matrix"] = threshold_graph(
-                graph=results["graph"],
-                val_matrix=results["val_matrix"],
-                p_matrix=results["p_matrix"],
-                strength_threshold=strength_threshold,
+            results["val_matrix"], results["graph"], results["p_matrix"] = (
+                threshold_graph(
+                    graph=results["graph"],
+                    val_matrix=results["val_matrix"],
+                    p_matrix=results["p_matrix"],
+                    strength_threshold=strength_threshold,
+                )
             )
 
     if verbose:
@@ -2685,10 +2956,14 @@ def mv_CaStLe_DYNOTEARS(
 
     # Get multivariate reduced space
     # This concatenates all variables' Moore neighborhoods into a single representation
-    reduced_space = get_MV_reduced_space(data=data, dependencies_wrap=dependencies_wrap, rows_inverted=rows_inverted)
+    reduced_space = get_MV_reduced_space(
+        data=data, dependencies_wrap=dependencies_wrap, rows_inverted=rows_inverted
+    )
 
     if verbose:
-        print(f"Data concatenated into multivariate Moore neighborhood space (shape {reduced_space.shape})...")
+        print(
+            f"Data concatenated into multivariate Moore neighborhood space (shape {reduced_space.shape})..."
+        )
 
     # Format data into DataFrame
     # Columns are named as: "0", "1", ..., "9*variable_n-1"
@@ -2724,15 +2999,26 @@ def mv_CaStLe_DYNOTEARS(
                     taboo_edges.append((1, str(center_i), str(center_j)))
 
     if verbose:
-        print(f"Running DYNOTEARS with {len(center_nodes)} center nodes and {len(taboo_edges)} taboo edges...")
+        print(
+            f"Running DYNOTEARS with {len(center_nodes)} center nodes and {len(taboo_edges)} taboo edges..."
+        )
 
     # Fit DYNOTEARS model
     structure_model_castled = from_pandas_dynamic(
-        df_castled, p=max_tau, lambda_w=lambda_w, lambda_a=lambda_a, max_iter=max_iter, w_threshold=dependence_threshold, tabu_edges=taboo_edges, tabu_child_nodes=taboo_children
+        df_castled,
+        p=max_tau,
+        lambda_w=lambda_w,
+        lambda_a=lambda_a,
+        max_iter=max_iter,
+        w_threshold=dependence_threshold,
+        tabu_edges=taboo_edges,
+        tabu_child_nodes=taboo_children,
     )
 
     # Convert structure model to graph format
-    reconstructed_graph, val_matrix = get_graph_from_structure_model(structure_model_castled)
+    reconstructed_graph, val_matrix = get_graph_from_structure_model(
+        structure_model_castled
+    )
 
     if verbose:
         print("Stencil learned...")

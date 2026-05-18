@@ -29,7 +29,6 @@ import helper_functions as helper
 
 from naive_mcastle_utils import cartesian_ucastle_dynotears
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--print", action=argparse.BooleanOptionalAction)
@@ -43,10 +42,10 @@ TIME_ALG = args.time_alg
 VERBOSE = args.verbose
 
 # Hard-coded DYNOTEARS hyperparameters (shared across all experiments)
-DEPENDENCE_THRESHOLD = 0.0   # keep all edges; sparsity controlled by lambda
-LAMBDA_A = 0.1               # L1 regularization for lag-1 (temporal) edges
-LAMBDA_W = 0.1               # L1 regularization for lag-0 (contemporaneous) edges
-MAX_ITER = 100               # dual-ascent iterations
+DEPENDENCE_THRESHOLD = 0.0  # keep all edges; sparsity controlled by lambda
+LAMBDA_A = 0.1  # L1 regularization for lag-1 (temporal) edges
+LAMBDA_W = 0.1  # L1 regularization for lag-0 (contemporaneous) edges
+MAX_ITER = 100  # dual-ascent iterations
 if not VERBOSE:
     VERBOSE = 0
 else:
