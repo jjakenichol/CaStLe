@@ -109,10 +109,9 @@ def pretty_print_link_assumptions(link_assumptions_indices):
 
     Parameters
     ----------
-    analysis_variables : list
-        List of variable names.
     link_assumptions_indices : dict
-        Dictionary specifying assumptions about links between variables using their indices.
+        Dictionary mapping child variable index to a dict of ``{(parent_idx, lag): link_type}``
+        entries, as used by Tigramite's ``link_assumptions`` argument.
     """
     print("variable_link_assumptions = {")
     for child_idx, parent_links in link_assumptions_indices.items():
@@ -235,6 +234,28 @@ def get_last_n_indices(array1: list, array2: list) -> list:
 
 
 def get_mixed_var_graph(given_graph, given_val_matrix, var_idx):
+    """
+    Extract a single-variable stencil view that mixes the center node from one variable with
+    the off-center nodes from another.
+
+    Parameters
+    ----------
+    given_graph : np.ndarray
+        Full stencil graph of shape ``(9*N, 9*N, 2)``.
+    given_val_matrix : np.ndarray
+        Corresponding value matrix of shape ``(9*N, 9*N, 2)``.
+    var_idx : int
+        Index of the variable whose off-center nodes are used to fill positions 0-3 and 5-8
+        of the returned 9-node stencil.
+
+    Returns
+    -------
+    return_graph : np.ndarray
+        Shape ``(9, 9, 2)`` stencil graph with center node from variable 0 and neighbor nodes
+        from ``var_idx``.
+    val_matrix : np.ndarray
+        Shape ``(9, 9, 2)`` value matrix corresponding to ``return_graph``.
+    """
     # Initialize data structures
     return_graph = np.full((9, 9, 2), fill_value="")
     val_matrix = np.full((9, 9, 2), fill_value=0.0)
@@ -256,7 +277,23 @@ def get_mixed_var_graph(given_graph, given_val_matrix, var_idx):
 
 
 def char_range(c1=None, c2=None, num_characters=None):
-    """Generates the characters from `c1` to `c2`, inclusive."""
+    """Generate a range of characters.
+
+    Parameters
+    ----------
+    c1 : str, optional
+        Starting character (inclusive). Required when ``num_characters`` is not given.
+    c2 : str, optional
+        Ending character (inclusive). Required together with ``c1``.
+    num_characters : int, optional
+        If provided, yield this many consecutive characters starting from ``'a'``,
+        ignoring ``c1`` and ``c2``.
+
+    Yields
+    ------
+    str
+        Single characters in the requested range.
+    """
     if num_characters:
         for c in range(ord("a"), ord("a") + num_characters):
             yield chr(c)
@@ -895,13 +932,19 @@ def create_custom_stencil_graph(
 
 def generate_centers(num_species):
     """
-    Generator function to yield the center indices for each species.
+    Yield the stencil center node index for each variable.
 
-    Args:
-        num_species (int): The number of species.
+    The center of variable ``k`` is at stencil position ``4 + 9*k``.
 
-    Yields:
-        int: The center index for each species.
+    Parameters
+    ----------
+    num_species : int
+        Number of variables (species).
+
+    Yields
+    ------
+    int
+        Center node index for each variable, in order.
     """
     for i in range(num_species):
         yield 4 + 9 * i

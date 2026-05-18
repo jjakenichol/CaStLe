@@ -559,7 +559,16 @@ def plot_multigrid_graph(
 
 # Preset configurations for different grid sizes
 def get_size_preset(grid_size):
-    """Get recommended plotting parameters for different grid sizes"""
+    """Get recommended plotting parameters for a given grid size.
+
+    Args:
+        grid_size (int): Number of cells along one side of the square spatial grid.
+
+    Returns:
+        dict: Plotting configuration with keys ``figsize_per_panel`` (tuple),
+            ``node_size`` (float), ``arrow_linewidth`` (float), and
+            ``arrowhead_size`` (int).
+    """
     if grid_size <= 10:
         return {
             "figsize_per_panel": (4, 4),

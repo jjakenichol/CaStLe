@@ -1,3 +1,11 @@
+"""
+Spatiotemporal SCM Data Generator
+
+Utilities for generating synthetic spatiotemporal datasets from Structural Causal Models
+(SCMs) defined by local spatial coefficient matrices on toroidal 2D grids.  Includes
+functions to build random or structured coefficient matrices, check VAR stability, and
+simulate multivariate grid time series.
+"""
 import numpy as np
 from numpy import linalg as LA
 import random
@@ -311,7 +319,32 @@ def create_global_dynamics_matrix(
 
 def compute_spectral_radius_robust(matrix, method="auto", max_iter=100, verbose=0):
     """
-    Compute spectral radius with fallback methods for robustness.
+    Compute the spectral radius of a matrix with fallback methods for robustness.
+
+    Tries standard eigenvalue decomposition first; falls back to power iteration,
+    then to the Frobenius norm (a conservative upper bound) if earlier methods fail.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Square matrix whose spectral radius is to be computed.
+    method : str, optional
+        Computation strategy: ``"standard"`` (eigenvalue decomposition),
+        ``"power_iteration"``, or ``"auto"`` (tries each in order). Defaults to ``"auto"``.
+    max_iter : int, optional
+        Maximum iterations for power iteration. Defaults to 100.
+    verbose : int, optional
+        Verbosity level (0 = silent). Defaults to 0.
+
+    Returns
+    -------
+    spectral_radius : float
+        Estimated spectral radius (largest absolute eigenvalue).
+    eigenvalues : numpy.ndarray or None
+        Full eigenvalue array if computed by standard method; ``None`` otherwise.
+    method_used : str
+        Which method produced the result: ``"standard"``, ``"power_iteration"``,
+        ``"norm_bound"``, or ``"max_abs"``.
     """
     if method == "standard" or method == "auto":
         try:
