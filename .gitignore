@@ -1,3 +1,30 @@
+# Large simulation data — hosted externally
+data/replicates/
+data/mcastle_results/
+data/naive_results/
+
+# Python artifacts
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Claude Code local settings
+.claude/
+
+# OS
 .DS_Store
-.ipynb_checkpoints
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

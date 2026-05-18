@@ -1,113 +1,176 @@
-# CaStLe (**Ca**usal **S**pace-Time S**t**encil **Le**arning)
+# M-CaStLe: Multivariate CaStLe
 
-[![DOI](https://zenodo.org/badge/831173446.svg)](https://doi.org/10.5281/zenodo.15530556)
+**TL;DR** — M-CaStLe is a multivariate extension of CaStLe for causal discovery in high-dimensional space–time systems, enabling robust identification of both spatial and inter-variable causal dynamics.
 
-This repository contains the code and data necessary to reproduce the results presented in our paper titled *Space-Time Causal Discovery in Earth System Science: A Local Stencil Learning Approach* by J. Jake Nichol, Michael Weylandt, Diana Bull, G. Matthew Fricke, Melanie E. Moses, and Laura P. Swiler.
+## Introduction
 
-### Abstract
+Causal discovery in gridded space–time data is fundamentally challenging: the number of spatial locations often far exceeds the number of available time points, and multiple interacting variables complicate both inference and interpretation. CaStLe (Nichol et al. 2025) addressed this "large-*p*, small-*n*" problem for univariate fields by exploiting locality (stationarity of a small Moore neighborhood) and a two-stage meta-algorithm (gathering local replicates + causal estimation). However, many scientific systems—from climate models to ecological networks—are inherently multivariate, with cross-variable couplings that the original CaStLe cannot capture.
 
-Causal discovery tools enable scientists to infer meaningful relationships from observational data, spurring advances in fields as diverse as biology, economics, and climate science. Despite these successes, the application of causal discovery to space-time systems remains immensely challenging due to the high-dimensional nature of the data. For example, in climate sciences, modern observational temperature records over the past few decades regularly measure thousands of locations around the globe. To address these challenges, we introduce Causal Space-Time Stencil Learning (CaStLe), a novel meta-algorithm for discovering causal structures in complex space-time systems. CaStLe leverages regularities in local space-time dependencies to learn governing global dynamics. This local perspective eliminates spurious confounding and drastically reduces sample complexity, making space-time causal discovery practical and effective. For causal discovery, CaStLe flexibly accepts any appropriately adapted time series causal discovery algorithm to recover local causal structures. These advances enable causal discovery of geophysical phenomena that were previously unapproachable, including non-periodic, transient phenomena such as volcanic eruption plumes. Regularities in local space-time dependencies are transformed into informative spatial replicates, which actually improve CaStLe's performance when applied to ever-larger spatial grids. We successfully apply CaStLe to discover the atmospheric dynamics governing the climate response to the 1991 Mount Pinatubo volcanic eruption. We provide validation experiments to demonstrate the effectiveness of CaStLe over existing causal-discovery frameworks on a range of geophysics-inspired benchmarks while identifying the method's limitations and domains where its assumptions may not hold.
+M-CaStLe extends CaStLe to N-variable fields by representing each grid-cell's 3×3 Moore neighborhood over N variables as a single 9N-dimensional vector, then applying time-series causal discovery algorithms under stencil-specific link assumptions to learn a 9N×9N local causal stencil. Once learned, that multivariate stencil is stitched across every cell of a toroidal grid to reconstruct a global causal graph of size (grid²·N)². From this structure we extract:
 
-### How to Cite
+- the multivariate causal **stencil graph** (9N×9N)
+- a compact **reaction graph** (N×N) of aggregated variable-to-variable effects
+- a **spatial summary** (9×9) of directional influence patterns
 
-Nichol, J. J., Weylandt, M., Fricke, G. M., Moses, M. E., Bull, D., & Swiler, L. P. (2025). Space-time causal discovery in Earth system science: A local stencil learning approach. Journal of Geophysical Research: Machine Learning and Computation, 2, e2024JH000546. https://doi.org/10.1029/2024JH000546
+## Repository structure
 
-
-### Overview
-
-The repository is organized into several directories:
-
-- `benchmarking`: Contains scripts for testing different configurations of the CaStLe model on various datasets.
-- `data`: Includes sample datasets used for testing and validation.
-- `figure_generation`: Jupyter notebooks for generating figures and analyzing results.
-- `src`: Source code for the core functionalities of the CaStLe algorithm, including causal discovery and graph metrics.
- 
- 
-## Data
- 
-The data generated and used for our HSW-V, VAR, and PDE experiments are available on Zenodo via [this link](https://zenodo.org/records/12701546?token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjZiODBjOGQ3LTc5NGMtNGZlYS1iMmZlLTM4MWY2ODk4ZjQ0MyIsImRhdGEiOnt9LCJyYW5kb20iOiI5YTZmNTY1ZjE5MzYyYWFmOGNmNzcxYTBhYWYzMjdmZCJ9.aki35C-lcVLEEbc4QCaxgvjkDIUZbzgWLkPwgnYtMOHYWtGdWKWChgtdQtxS14TqgYCuGRUwC7o8L0YZCggE-w) with GNU Lesser General Public License v3.0 or later. The data used for the E3SMv2-SPA experiments can be found in [1,2].
-
-[1] Hunter York Brown, Benjamin Wagman, Diana Bull, Kara Peterson, Benjamin Hillman, Xiaohong Liu, Ziming Ke, and Lin Lin. 2024. Validating a microphysical prognostic stratospheric aerosol implementation in E3SMv2 using observations after the Mount Pinatubo eruption. Geoscientific Model Development 17, 13 (2024), 5087-5121. https://doi.org/10.5194/gmd-17-5087-2024.
-
-[2] Tom Ehrmann, Benjamin Wagman, Diana Bull, Hunter York Brown, Benjamin Hillman, Kara Peterson, Laura Swiler, Jerry Watkins, and Joseph Hart. 2024. Identifying Northern Hemisphere Temperature Responses to the Mt. Pinatubo Eruption through Limited Variability Ensembles. To be submitted to Climate Dynamics 17, 13 (2024), 5087-5121. https://doi.org/10.5194/cd-17-5087-2024.
- 
-## Installation Instructions
-
-To set up your environment with the necessary libraries, install the following packages using your preferred package manager (`conda` or `pip`):
-
-- `python=3.9`,`3.10`
-- `cartopy`
-- `dask`
-- `dcor`
-- `matplotlib>=3.7.0`
-- `numpy<1.24,>=1.18`
-- `pandas`
-- `scipy>=1.10.0`
-- `seaborn>=0.12.2`
-- `statsmodels`
-- `xarray`
-- `numba=0.56.4`
-- `networkx>=3.0`
-- `colorcet` # for plotting
-
-```sh
-conda install cartopy dask dcor "matplotlib>=3.7.0" numpy pandas "scipy>=1.10.0" seaborn statsmodels xarray numba=0.56.4 "networkx>=3.0"
+```
+├── environment.yml                         # conda environment specification
+├── src/                                    # source modules and experiment scripts
+│   ├── mcastle_utils.py                    # core M-CaStLe algorithm and utilities
+│   ├── spatiotemporal_SCM_data_generator.py
+│   ├── causal_graph_metrics.py             # F1, MCC, FDR, confusion matrix
+│   ├── naive_mcastle_utils.py              # Cartesian-CaStLe baseline
+│   ├── trad_CD_algs.py                     # traditional causal discovery wrappers
+│   ├── ADRExperiment.py                    # ADR PDE experiment class
+│   ├── matlabPDE.py                        # MATLAB PDE solver interface
+│   ├── helper_functions.py                 # result filename utilities
+│   ├── chain_stencil_experiment.py         # chain-stencil scaling experiment
+│   ├── test_MVCaStLe_PC.py                 # M-CaStLe VAR benchmark runners
+│   ├── test_MVCaStLe_PCMCI.py
+│   ├── test_MVCaStLe_DYNOTEARS.py
+│   ├── test_CartesianUCaStLe_PC.py         # Cartesian-CaStLe baseline runners
+│   ├── test_CartesianUCaStLe_PCMCI.py
+│   ├── test_CartesianUCaStLe_DYNOTEARS.py
+│   ├── test_PCMCI.py                       # traditional CD baseline runners
+│   ├── test_PC.py
+│   ├── test_DYNOTEARS.py
+│   ├── test_generate_dateset.py            # data generator unit tests
+│   └── adr/                               # ADR PDE workflow
+│       ├── call_MVADR.py                   # run a single ADR experiment
+│       ├── compute_stencil.py              # apply M-CaStLe to ADR output
+│       ├── run_batch_experiments.py        # primary ADR parameter sweep
+│       ├── study_full.py                   # full angle-estimation sweep
+│       ├── concentration_study.py          # concentration sensitivity sweep
+│       ├── post_process_results.py         # compute metrics across results
+│       ├── print_completed_experiments.py  # inspect completed experiment files
+│       ├── animate_adr_results.py          # animate PDE solution
+│       ├── plot_stencil_results.py         # plot saved stencil results
+│       ├── plot_reduced_space_ts.py        # plot reduced-space time series
+│       ├── figure_angle_error2.py          # generate angle-error figure
+│       ├── unitTestADRExperiment.py        # unit tests for ADRExperiment
+│       ├── ADR_Driver_func.m               # MATLAB PDE driver
+│       ├── Driver_Data_Generation.m        # MATLAB data generation script
+│       └── Transient_ADR_2D.m             # MATLAB 2D transient ADR solver
+├── tutorials/                              # interactive tutorials
+│   ├── MCaStLe_tutorial.ipynb             # end-to-end M-CaStLe walkthrough
+│   ├── mcastle_vs_naive_comparison.ipynb  # M-CaStLe vs Cartesian-CaStLe
+│   ├── naive_mcastle_demo.ipynb           # Cartesian-CaStLe standalone demo
+│   └── mcastle_pc_timestep_scaling.ipynb  # runtime scaling with T
+├── paper/                                  # figure-reproduction notebooks
+│   ├── figure3_var_benchmark.ipynb        # Figures 3 and 7
+│   └── figure4_figure11_adr.ipynb         # Figures 4, 10, and 11
+└── data/
+    └── figures/                            # pre-extracted CSVs for figure notebooks
+        ├── var_benchmark_data.csv
+        ├── angle_error2_data.csv
+        └── adr_reaction_f1_data.csv
 ```
 
-The `clif` package is necessary for working with E3SM and HSW-V data:
+## Installation
 
-```sh
-pip install git+https://github.com/sandialabs/clif.git
-```
+We recommend creating an isolated conda environment:
 
-The `causalnex` package is necessary for running DYNOTEARS tests:
-
-```sh
-pip install git+https://github.com/mckinsey/causalnex.git
-```
-
-The `matlab_engine` package must be installed to generate Burgers PDE experiments:
-```sh
-cd "matlabroot\extern\engines\python"
-python setup.py install
-```
-
-Finally, `Tigramite` is necessary for other causal discovery tests, and should be installed last, which can be found here: https://github.com/jakobrunge/tigramite.
-
-## Using this Code
-
-### Source Code
-
-The `src` directory contains the core functionalities of the CaStLe algorithm, including causal discovery and graph metrics. Key files include:
-
-- `stencil_functions.py`: Contains the minimum code to run CaStLe using various causal discovery algorithms for the Parent Identification Phase (PIP). It includes implementations for CaStLe-PC, CaStLe-PCMCI, and other supporting functions.
-- `graph_metrics.py`: Includes functions for computing graph metrics and evaluation measures related to causal graphs.
-- `stable_SCM_generator.py`: Provides functions to generate stable Structural Causal Models (SCMs) for spatiotemporal datasets.
- 
-### Benchmarking Scripts
-
-The `benchmarking` directory contains several scripts for testing different configurations of the CaStLe model. Each script follows a similar structure and can be run from the command line with various options.
-
-Example usage:
 ```bash
-python benchmarking/test_CaStLe_PC.py --data_path path/to/data.npy --print --verbose --time_alg
+conda env create -f environment.yml
+conda activate mcastle
 ```
 
-#### Generating 2D SCM test data with `generate_SCM_data.py`
+If you do not have conda, install dependencies via pip:
 
-This script generates spatiotemporal data based on a 2D structural causal model using vector autoregression.
-
-The script utilizes the `stable_SCM_generator` module to generate random stable coefficient matrices based on the specified parameters. It then initializes the data array and runs a simulation loop to generate the spatiotemporal data by applying the coefficient matrix to the previous time step's data, incorporating noise.
-
-The script takes command-line arguments to specify various parameters such as the number of time samples (T), the dimension of the square grid (GRID_SIZE), the density of the desired coefficient matrix (DEPENDENCE_DENSITY), the minimum value of the coefficient matrix (MIN_VALUE), the standard deviation of the added noise in simulation (ERROR_SIGMA), the number of experimental repetitions (NUM_REPETITION), the save path prefix for the output file (SAVE_PATH_PREFIX), and the verbosity level (VERBOSE).
-
-The generated data is saved to a file in the NumPy binary format (.npy) with a unique filename based on the specified parameters. If no save path prefix is provided, the default save path is used.
-
-Example usage:
 ```bash
-python generate_SCM_data.py --t <number_of_time_samples> --grid_size <dimension_of_square_grid> --dependence_density <density_of_coefficient_matrix> --min_value <minimum_value_of_coefficient_matrix> --error_sigma <standard_deviation_of_noise> [--num_repetition <number_of_repetitions>] [--save_path_prefix <save_path_prefix>] [--verbose <verbosity_level>]
+python3 -m venv venv
+source venv/bin/activate
+pip install numpy scipy matplotlib pandas xarray networkx tigramite causalnex
 ```
 
-### Figure Generation
+> **ADR experiments only:** the `src/adr/` workflow additionally requires MATLAB and the [MATLAB Engine API for Python](https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html).
 
-The `figure_generation` directory contains Jupyter notebooks for generating figures and analyzing results. These notebooks can be opened and run in a Jupyter environment.
+## Quick start
+
+```python
+import spatiotemporal_SCM_data_generator as dg
+import mcastle_utils as ms
+from tigramite.independence_tests.parcorr import ParCorr
+
+# 1. Specify a ground-truth causal structure
+spatial_coefs = dg.get_empty_coefficient_matrix(n_variables=2)
+spatial_coefs[0, 1, 1][0] = 0.40   # A(center) -> A(center)
+spatial_coefs[1, 0, 1][1] = 0.30   # B(north)  -> B(center)
+spatial_coefs[1, 1, 1][0] = 0.35   # A(center) -> B(center)
+
+# 2. Simulate data on a 4x4 toroidal grid
+data = dg.generate_dataset(T=500, grid_size=4, spatial_coefs=spatial_coefs, random_seed=0)
+
+# 3. Build the ground-truth stencil graph
+true_stencil, true_vals = ms.get_stencil_graph_from_coefficients(spatial_coefs)
+
+# 4. Run M-CaStLe-PC
+results = ms.mv_CaStLe_PC(
+    data,
+    cond_ind_test=ParCorr(significance='analytic'),
+    pc_alpha=0.05,
+    graph_p_threshold=0.05,
+    rows_inverted=True,
+    fdr_method='bh',
+)
+
+# 5. Evaluate
+from causal_graph_metrics import get_graph_metrics
+print(get_graph_metrics(true_stencil, results['graph']))
+```
+
+See `tutorials/MCaStLe_tutorial.ipynb` for a complete walkthrough including visualization and multi-experiment evaluation.
+
+## Reproducing paper figures
+
+The `paper/` notebooks reproduce all paper figures from pre-extracted summary CSVs in `data/figures/` — no large simulation outputs are required.
+
+| Notebook | Figures reproduced |
+|---|---|
+| `paper/figure3_var_benchmark.ipynb` | Fig. 3 (VAR benchmark F1/Precision/Recall), Fig. 7 (link extent) |
+| `paper/figure4_figure11_adr.ipynb` | Fig. 4 (angle estimation), Fig. 10 (ADR reaction graph), Fig. 11 (F1 histogram) |
+
+Output PDFs and PNGs are written to `paper/figures/`.
+
+## Tutorials
+
+| Notebook | Description |
+|---|---|
+| `tutorials/MCaStLe_tutorial.ipynb` | End-to-end walkthrough: data generation, stencil learning, visualization, evaluation |
+| `tutorials/mcastle_vs_naive_comparison.ipynb` | Side-by-side comparison of M-CaStLe and Cartesian-CaStLe on matched synthetic datasets |
+| `tutorials/naive_mcastle_demo.ipynb` | Standalone Cartesian-CaStLe demos including center-only and spatial (off-center) examples |
+| `tutorials/mcastle_pc_timestep_scaling.ipynb` | Runtime and accuracy scaling with number of time steps T |
+
+## Running experiments
+
+All experiment scripts are run from `src/` (add `src/` to your `PYTHONPATH` or `cd` into it first). Each script accepts command-line arguments; run with `--help` for options.
+
+**VAR benchmark** (synthetic SCM data):
+```bash
+cd src
+python test_MVCaStLe_PC.py --data_path <path_to_data.npz> --print
+python test_PCMCI.py       --data_path <path_to_data.npz> --print
+```
+
+**ADR workflow** (requires MATLAB):
+```bash
+cd src/adr
+python run_batch_experiments.py          # run ADR parameter sweep
+python compute_stencil.py <exp.pkl>      # apply M-CaStLe to one result
+python post_process_results.py <results_dir> <experiments_dir>
+python figure_angle_error2.py --input <csv> --output-dir figures/
+```
+
+## Module overview
+
+| Module | Purpose |
+|---|---|
+| `mcastle_utils.py` | Core algorithm: `mv_CaStLe_PC`, `mv_CaStLe_DYNOTEARS`, stencil ↔ graph conversions, plotting, angle estimation |
+| `spatiotemporal_SCM_data_generator.py` | Synthetic VAR data generation on toroidal grids with stability guarantees |
+| `causal_graph_metrics.py` | Evaluation: confusion matrix, F1, MCC, FDR, graph statistics |
+| `naive_mcastle_utils.py` | Cartesian-CaStLe baseline: per-variable univariate CaStLe + non-spatial inter-variable discovery |
+| `trad_CD_algs.py` | Thin wrappers around Tigramite PC/PCMCI and CausalNex DYNOTEARS for baseline comparisons |
+| `ADRExperiment.py` | ADR PDE experiment management: parameter sweeps, caching, save/load |
+| `matlabPDE.py` | Python interface to the MATLAB ADR PDE solver |
+| `helper_functions.py` | Filename utilities for embedding hyperparameters in result file paths |
