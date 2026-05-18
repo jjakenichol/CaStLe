@@ -18,6 +18,7 @@ Usage
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import argparse
@@ -85,7 +86,9 @@ def load_results(results_dir, experiments_dir):
             continue
 
         # Extract pc_alpha and graph_p_threshold from filename using regex
-        pattern = r"_stencil_results_([0-9.]+)_([0-9.]+)_([0-9.]+)_([a-zA-Z0-9_-]+)\.pkl$"
+        pattern = (
+            r"_stencil_results_([0-9.]+)_([0-9.]+)_([0-9.]+)_([a-zA-Z0-9_-]+)\.pkl$"
+        )
         match = re.search(pattern, filename)
 
         if match:
@@ -99,11 +102,17 @@ def load_results(results_dir, experiments_dir):
                 continue
 
             # Construct experiment path based on the stencil filename
-            base_filename = filename.replace(f"_stencil_results_{pc_alpha}_{graph_p_threshold}_{strength_threshold}_{cd_alg}.pkl", ".pkl")
+            base_filename = filename.replace(
+                f"_stencil_results_{pc_alpha}_{graph_p_threshold}_{strength_threshold}_{cd_alg}.pkl",
+                ".pkl",
+            )
             experiment_path = os.path.join(experiments_dir, base_filename)
 
             # Check if experiment file is empty
-            if os.path.exists(experiment_path) and os.path.getsize(experiment_path) == 0:
+            if (
+                os.path.exists(experiment_path)
+                and os.path.getsize(experiment_path) == 0
+            ):
                 corrupted_files.append((experiment_path, "Zero-byte file"))
                 print(f"Corrupted file (0 bytes): {experiment_path}")
                 continue
@@ -212,7 +221,11 @@ def filter_dataframe(df, filter_dict):
 
         # For list columns (like diff_coeffs), use string comparison
         str_allowed = [str(val) for val in allowed_values]
-        mask = filtered_df[key].astype(str).apply(lambda x: any(x == val for val in str_allowed))
+        mask = (
+            filtered_df[key]
+            .astype(str)
+            .apply(lambda x: any(x == val for val in str_allowed))
+        )
         filtered_df = filtered_df[mask]
 
     return filtered_df
@@ -233,7 +246,9 @@ def get_reaction_results(row):
     """
     stencil_graph = row["stencil_results"]["graph"]
     stencil_val_matrix = row["stencil_results"]["val_matrix"]
-    reaction_graph, reaction_val_matrix = ms.construct_reaction_graph(stencil_graph, stencil_val_matrix)
+    reaction_graph, reaction_val_matrix = ms.construct_reaction_graph(
+        stencil_graph, stencil_val_matrix
+    )
     reaction_results = (reaction_graph, reaction_val_matrix)
     return reaction_results
 
@@ -253,7 +268,9 @@ def get_summary_results(row):
     """
     stencil_graph = row["stencil_results"]["graph"]
     stencil_val_matrix = row["stencil_results"]["val_matrix"]
-    summary_graph, summary_val_matrix = ms.summarize_stencil(stencil_graph, stencil_val_matrix)
+    summary_graph, summary_val_matrix = ms.summarize_stencil(
+        stencil_graph, stencil_val_matrix
+    )
     summary_results = (summary_graph, summary_val_matrix)
     return summary_results
 
@@ -277,7 +294,9 @@ def apply_separate_stencil_angle_difference(row, verbose=False):
     ground_truth_angle = row["velocity_angle"]
     mstencil_graph = row["stencil_results"]["graph"]
     mstencil_val_matrix = row["stencil_results"]["val_matrix"]
-    graphs, val_matrices = ms.get_species_spatial_graphs(mstencil_graph, mstencil_val_matrix)
+    graphs, val_matrices = ms.get_species_spatial_graphs(
+        mstencil_graph, mstencil_val_matrix
+    )
     angles = []
     for parent_var in range(2):
         for child_var in range(2):
@@ -293,7 +312,9 @@ def apply_separate_stencil_angle_difference(row, verbose=False):
     angle_avg = ms.angle_average(angles)
     if verbose:
         print(f"Average angle over each graph: {angle_avg}")
-    separate_stencil_angle_difference = ms.angle_difference(ground_truth_angle, angle_avg)
+    separate_stencil_angle_difference = ms.angle_difference(
+        ground_truth_angle, angle_avg
+    )
     if verbose:
         print(f"Angle difference: {separate_stencil_angle_difference}")
     return separate_stencil_angle_difference
@@ -312,7 +333,9 @@ def apply_reaction_mcc(row, ground_truth_reaction_graph):
         float: Matthews Correlation Coefficient.
     """
     reaction_graph = row["reaction_results"][0]
-    return graph_metrics.matthews_correlation_coefficient(true_graph=ground_truth_reaction_graph, discovered_graph=reaction_graph)
+    return graph_metrics.matthews_correlation_coefficient(
+        true_graph=ground_truth_reaction_graph, discovered_graph=reaction_graph
+    )
 
 
 def apply_reaction_mcc_no_auto(row, ground_truth_reaction_graph_no_auto):
@@ -328,7 +351,9 @@ def apply_reaction_mcc_no_auto(row, ground_truth_reaction_graph_no_auto):
         float: Matthews Correlation Coefficient.
     """
     reaction_graph = row["reaction_results"][0]
-    return graph_metrics.matthews_correlation_coefficient(true_graph=ground_truth_reaction_graph_no_auto, discovered_graph=reaction_graph)
+    return graph_metrics.matthews_correlation_coefficient(
+        true_graph=ground_truth_reaction_graph_no_auto, discovered_graph=reaction_graph
+    )
 
 
 def apply_summary_stencil_angle(row):
@@ -375,7 +400,9 @@ def apply_mstencil_angle_nonnegative(row):
     """
     mstencil_graph = row["stencil_results"]["graph"]
     mstencil_val_matrix = row["stencil_results"]["val_matrix"]
-    mstencil_angle = ms.get_angle_from_stencil_nonnegative(mstencil_graph, mstencil_val_matrix)
+    mstencil_angle = ms.get_angle_from_stencil_nonnegative(
+        mstencil_graph, mstencil_val_matrix
+    )
     return mstencil_angle
 
 
@@ -409,7 +436,9 @@ def apply_confusion_matrix(row, ground_truth_reaction_graph):
         tuple: ``(TP, FP, FN, TN)`` counts.
     """
     reaction_graph = row["reaction_results"][0]
-    return graph_metrics.get_confusion_matrix(ground_truth_reaction_graph, reaction_graph)
+    return graph_metrics.get_confusion_matrix(
+        ground_truth_reaction_graph, reaction_graph
+    )
 
 
 def compute_metrics(row):
@@ -457,7 +486,13 @@ def process_univariate_estimation(row):
     angle_differences = []
 
     for var in range(data.shape[0]):
-        results = ms.mv_CaStLe_PC(data=data[var : (var + 1), :, :, :], cond_ind_test=parcorr, pc_alpha=0.9, graph_p_threshold=0.9, verbose=0)
+        results = ms.mv_CaStLe_PC(
+            data=data[var : (var + 1), :, :, :],
+            cond_ind_test=parcorr,
+            pc_alpha=0.9,
+            graph_p_threshold=0.9,
+            verbose=0,
+        )
         graph = results["graph"]
         val_matrix = results["val_matrix"]
 
@@ -492,7 +527,9 @@ def main(results_dir, experiments_dir):
         print("Empty results directory passed!")
         sys.exit(1)
 
-    results_df, corrupted_summary, illegal_files = load_results(results_dir, experiments_dir)
+    results_df, corrupted_summary, illegal_files = load_results(
+        results_dir, experiments_dir
+    )
     if len(corrupted_summary) != 0:
         print(f"Corrupted files found:")
         print(corrupted_summary)
@@ -506,8 +543,12 @@ def main(results_dir, experiments_dir):
         sys.exit(1)
     print("Data loaded.")
 
-    ground_truth_reaction_graph = np.array([[["", "-->"], ["", "-->"]], [["", ""], ["", "-->"]]], dtype=object)
-    ground_truth_reaction_graph_no_auto = np.array([[["", ""], ["", "-->"]], [["", ""], ["", ""]]], dtype=object)
+    ground_truth_reaction_graph = np.array(
+        [[["", "-->"], ["", "-->"]], [["", ""], ["", "-->"]]], dtype=object
+    )
+    ground_truth_reaction_graph_no_auto = np.array(
+        [[["", ""], ["", "-->"]], [["", ""], ["", ""]]], dtype=object
+    )
 
     print("Computing results..")
 
@@ -516,10 +557,20 @@ def main(results_dir, experiments_dir):
     results_df["summary_results"] = results_df.apply(get_summary_results, axis=1)
 
     print("Computing reaction analysis..")
-    results_df["Reaction Graph MCC"] = results_df.apply(lambda row: apply_reaction_mcc(row, ground_truth_reaction_graph), axis=1)
-    results_df["Reaction Graph No Auto MCC"] = results_df.apply(lambda row: apply_reaction_mcc(row, ground_truth_reaction_graph_no_auto), axis=1)
-    results_df[["TP", "FP", "FN", "TN"]] = results_df.apply(lambda row: apply_confusion_matrix(row, ground_truth_reaction_graph), axis=1, result_type="expand")
-    results_df[["Precision", "Recall", "FDR"]] = results_df.apply(compute_metrics, axis=1)
+    results_df["Reaction Graph MCC"] = results_df.apply(
+        lambda row: apply_reaction_mcc(row, ground_truth_reaction_graph), axis=1
+    )
+    results_df["Reaction Graph No Auto MCC"] = results_df.apply(
+        lambda row: apply_reaction_mcc(row, ground_truth_reaction_graph_no_auto), axis=1
+    )
+    results_df[["TP", "FP", "FN", "TN"]] = results_df.apply(
+        lambda row: apply_confusion_matrix(row, ground_truth_reaction_graph),
+        axis=1,
+        result_type="expand",
+    )
+    results_df[["Precision", "Recall", "FDR"]] = results_df.apply(
+        compute_metrics, axis=1
+    )
 
     # print("Computing summary angle analysis..")
     # results_df["Summary Stencil Angle"] = results_df.apply(apply_summary_stencil_angle, axis=1)
@@ -527,11 +578,17 @@ def main(results_dir, experiments_dir):
 
     print("Computing M-Stencil angle analysis..")
     results_df["M-Stencil Angle"] = results_df.apply(apply_mstencil_angle, axis=1)
-    results_df["M-Stencil Angle Difference"] = results_df.apply(lambda row: apply_angle_difference(row, "M-Stencil Angle"), axis=1)
+    results_df["M-Stencil Angle Difference"] = results_df.apply(
+        lambda row: apply_angle_difference(row, "M-Stencil Angle"), axis=1
+    )
 
     print("Computing Nonnegative M-Stencil angle analysis..")
-    results_df["M-Stencil Angle Nonnegative"] = results_df.apply(apply_mstencil_angle_nonnegative, axis=1)
-    results_df["M-Stencil Angle Difference Nonnegative"] = results_df.apply(lambda row: apply_angle_difference(row, "M-Stencil Angle Nonnegative"), axis=1)
+    results_df["M-Stencil Angle Nonnegative"] = results_df.apply(
+        apply_mstencil_angle_nonnegative, axis=1
+    )
+    results_df["M-Stencil Angle Difference Nonnegative"] = results_df.apply(
+        lambda row: apply_angle_difference(row, "M-Stencil Angle Nonnegative"), axis=1
+    )
 
     # print("Computing Separate Stencils angle analysis..")
     # results_df["Separate Stencils Angle Difference"] = results_df.apply(apply_separate_stencil_angle_difference, axis=1)
@@ -548,9 +605,13 @@ def main(results_dir, experiments_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process results and experiments directories.")
+    parser = argparse.ArgumentParser(
+        description="Process results and experiments directories."
+    )
     parser.add_argument("results_dir", type=str, help="Path to the results directory")
-    parser.add_argument("experiments_dir", type=str, help="Path to the experiments directory")
+    parser.add_argument(
+        "experiments_dir", type=str, help="Path to the experiments directory"
+    )
 
     args = parser.parse_args()
 

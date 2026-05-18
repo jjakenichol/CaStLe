@@ -67,19 +67,13 @@ def main():
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
-    plot_data["angle_error_exceeds_45"] = (
-        plot_data["M-Stencil Angle Difference"] > 45
-    )
+    plot_data["angle_error_exceeds_45"] = plot_data["M-Stencil Angle Difference"] > 45
 
     diffs_to_filter = [0.005, 0.01, 0.05, 0.1, 0.2, 0.4]
     vels_to_filter = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
 
-    plot_data = plot_data[
-        plot_data["diff_coefs_serial"].isin(diffs_to_filter)
-    ].copy()
-    plot_data = plot_data[
-        plot_data["velocity_magnitude"].isin(vels_to_filter)
-    ].copy()
+    plot_data = plot_data[plot_data["diff_coefs_serial"].isin(diffs_to_filter)].copy()
+    plot_data = plot_data[plot_data["velocity_magnitude"].isin(vels_to_filter)].copy()
 
     sns.set_theme(style="whitegrid", context="talk")
 

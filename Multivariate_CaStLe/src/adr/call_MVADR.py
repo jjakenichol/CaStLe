@@ -7,6 +7,7 @@ animating the solution, and computing and plotting stencils.
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import matplotlib.pyplot as plt
@@ -75,7 +76,9 @@ def main():
 
     # Plot the initial conditions
     if plot_initial_condition:
-        experiment.pde_solver.plot_fields(solution, timestep=0, title="Initial Conditions")
+        experiment.pde_solver.plot_fields(
+            solution, timestep=0, title="Initial Conditions"
+        )
         plt.show(block=False)  # Show the initial conditions plot without blocking
 
     animation_save_filepath = None
@@ -96,8 +99,12 @@ def main():
     # sys.exit()
 
     if compute_stencil:
-        ground_truth_reaction_graph = np.array([[["", "-->"], ["", "-->"]], [["", ""], ["", "-->"]]], dtype=object)
-        ground_truth_reaction_graph_no_auto = np.array([[["", ""], ["", "-->"]], [["", ""], ["", ""]]], dtype=object)
+        ground_truth_reaction_graph = np.array(
+            [[["", "-->"], ["", "-->"]], [["", ""], ["", "-->"]]], dtype=object
+        )
+        ground_truth_reaction_graph_no_auto = np.array(
+            [[["", ""], ["", "-->"]], [["", ""], ["", ""]]], dtype=object
+        )
 
         parcorr = ParCorr(significance="analytic")
         start_time = time.time()
@@ -109,7 +116,9 @@ def main():
         )
         print(f"MV CaStLe took {time.time() - start_time} seconds to complete.")
         # Save stencil results dictionary
-        save_filename = "results/stencil_results/" + filename[:-4] + "stencil_results.pkl"
+        save_filename = (
+            "results/stencil_results/" + filename[:-4] + "stencil_results.pkl"
+        )
         with open(save_filename, "wb") as f:
             pickle.dump(results, f)
         print(f"Results saved to {save_filename}")
@@ -121,7 +130,9 @@ def main():
         ms.plot_stencil_graph(stencil_graph=graph, stencil_val_matrix=val_matrix)
 
         # Compute reaction results
-        reaction_graph, reaction_val_matrix = ms.construct_reaction_graph(graph, val_matrix)
+        reaction_graph, reaction_val_matrix = ms.construct_reaction_graph(
+            graph, val_matrix
+        )
         reaction_results = (reaction_graph, reaction_val_matrix)
 
         # Compute summary results
@@ -129,8 +140,12 @@ def main():
         summary_results = (summary_graph, summary_val_matrix)
 
         # Apply metrics
-        reaction_mcc = graph_metrics.matthews_correlation_coefficient(ground_truth_reaction_graph, reaction_graph)
-        reaction_mcc_no_auto = graph_metrics.matthews_correlation_coefficient(ground_truth_reaction_graph_no_auto, reaction_graph)
+        reaction_mcc = graph_metrics.matthews_correlation_coefficient(
+            ground_truth_reaction_graph, reaction_graph
+        )
+        reaction_mcc_no_auto = graph_metrics.matthews_correlation_coefficient(
+            ground_truth_reaction_graph_no_auto, reaction_graph
+        )
         stencil_angle = ms.get_angle_from_stencil(summary_graph, summary_val_matrix)
 
         # Compute angle difference
@@ -145,12 +160,18 @@ def main():
 
         fig1, ax1 = plt.subplots(figsize=(5, 4))
         if graph.shape[0] // 9 == 2:
-            ms.plot_reaction_graph_of_two_nodes(reaction_graph, reaction_val_matrix, fig=fig1, ax=ax1, node_aspect=4)
+            ms.plot_reaction_graph_of_two_nodes(
+                reaction_graph, reaction_val_matrix, fig=fig1, ax=ax1, node_aspect=4
+            )
         else:
-            ms.plot_reaction_graph(reaction_graph, reaction_val_matrix, fig=fig1, ax=ax1, node_aspect=4)
+            ms.plot_reaction_graph(
+                reaction_graph, reaction_val_matrix, fig=fig1, ax=ax1, node_aspect=4
+            )
 
         # Simplify the stencil graph and value matrix
-        ms.plot_stencil_graph(summary_graph, summary_val_matrix, directional_var_names=True)
+        ms.plot_stencil_graph(
+            summary_graph, summary_val_matrix, directional_var_names=True
+        )
 
         plt.show()
 

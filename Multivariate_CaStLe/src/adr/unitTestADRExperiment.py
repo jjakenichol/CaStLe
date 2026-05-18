@@ -8,6 +8,7 @@ directory, or via ``python unitTestADRExperiment.py``.
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import unittest
@@ -97,15 +98,25 @@ class TestADRExperiment(unittest.TestCase):
         self.assertEqual(self.experiment.init_center, loaded_experiment.init_center)
         self.assertEqual(self.experiment.plume_size, loaded_experiment.plume_size)
         self.assertEqual(self.experiment.diff_coeffs, loaded_experiment.diff_coeffs)
-        self.assertEqual(self.experiment.advection_coeffs, loaded_experiment.advection_coeffs)
-        self.assertEqual(self.experiment.velocity_field_type, loaded_experiment.velocity_field_type)
-        self.assertEqual(self.experiment.velocity_parameters, loaded_experiment.velocity_parameters)
+        self.assertEqual(
+            self.experiment.advection_coeffs, loaded_experiment.advection_coeffs
+        )
+        self.assertEqual(
+            self.experiment.velocity_field_type, loaded_experiment.velocity_field_type
+        )
+        self.assertEqual(
+            self.experiment.velocity_parameters, loaded_experiment.velocity_parameters
+        )
         self.assertEqual(self.experiment.react_rate, loaded_experiment.react_rate)
-        self.assertEqual(self.experiment.reaction_scaling, loaded_experiment.reaction_scaling)
+        self.assertEqual(
+            self.experiment.reaction_scaling, loaded_experiment.reaction_scaling
+        )
         self.assertEqual(self.experiment.t, loaded_experiment.t)
         self.assertEqual(self.experiment.H, loaded_experiment.H)
         self.assertEqual(self.experiment.radius, loaded_experiment.radius)
-        self.assertEqual(self.experiment.capture_apothem, loaded_experiment.capture_apothem)
+        self.assertEqual(
+            self.experiment.capture_apothem, loaded_experiment.capture_apothem
+        )
         self.assertEqual(self.experiment.capture_N, loaded_experiment.capture_N)
         self.assertFalse(loaded_experiment.plot)
         self.assertFalse(loaded_experiment.verbose)
@@ -160,14 +171,24 @@ class TestADRExperiment(unittest.TestCase):
         self.assertEqual(parsed_params["init_center"], self.experiment.init_center)
         self.assertEqual(parsed_params["plume_size"], self.experiment.plume_size)
         self.assertEqual(parsed_params["diff_coeffs"], self.experiment.diff_coeffs)
-        self.assertEqual(parsed_params["advection_coeffs"], self.experiment.advection_coeffs)
-        self.assertEqual(parsed_params["velocity_field_type"], self.experiment.velocity_field_type)
-        self.assertEqual(parsed_params["velocity_parameters"], self.experiment.velocity_parameters)
+        self.assertEqual(
+            parsed_params["advection_coeffs"], self.experiment.advection_coeffs
+        )
+        self.assertEqual(
+            parsed_params["velocity_field_type"], self.experiment.velocity_field_type
+        )
+        self.assertEqual(
+            parsed_params["velocity_parameters"], self.experiment.velocity_parameters
+        )
         self.assertEqual(parsed_params["react_rate"], self.experiment.react_rate)
-        self.assertEqual(parsed_params["reaction_scaling"], self.experiment.reaction_scaling)
+        self.assertEqual(
+            parsed_params["reaction_scaling"], self.experiment.reaction_scaling
+        )
         self.assertEqual(parsed_params["H"], self.experiment.H)
         self.assertEqual(parsed_params["radius"], self.experiment.radius)
-        self.assertEqual(parsed_params["capture_apothem"], self.experiment.capture_apothem)
+        self.assertEqual(
+            parsed_params["capture_apothem"], self.experiment.capture_apothem
+        )
         self.assertEqual(parsed_params["capture_N"], self.experiment.capture_N)
         self.assertEqual(parsed_params["t"], self.experiment.t)
 

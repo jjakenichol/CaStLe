@@ -16,6 +16,7 @@ Usage
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import numpy as np
@@ -47,7 +48,12 @@ def main():
         "mesh_shape": ["circle"],
         "init_center": [[0.0, 0.0]],
         "plume_size": [50],
-        "diff_coeffs": [[0.05, 0.05], [0.1, 0.1], [0.2, 0.2], [0.4, 0.4]],  # [1.0, 1.0], [2.0, 2.0], [10.0, 10.0]
+        "diff_coeffs": [
+            [0.05, 0.05],
+            [0.1, 0.1],
+            [0.2, 0.2],
+            [0.4, 0.4],
+        ],  # [1.0, 1.0], [2.0, 2.0], [10.0, 10.0]
         "advection_coeffs": [[1.0, 1.0]],  # , [2.0, 2.0], [3.0, 3.0]
         "velocity_magnitude": [1.0, 2.0, 4.0, 6.0, 8.0],  # , 10.0
         "velocity_angle": list(range(0, 91, 15)),
@@ -70,7 +76,9 @@ def main():
     }
 
     keys, values = zip(*param_sweeps.items())
-    param_combinations = [dict(zip(keys, combination)) for combination in product(*values)]
+    param_combinations = [
+        dict(zip(keys, combination)) for combination in product(*values)
+    ]
 
     num_workers = 1  # Specify the number of workers to use # NOTE: more than one seems much slower for now.
     cached_files_dir = "results/ADR_model_output"
@@ -83,7 +91,9 @@ def main():
         # experiment.run_batch_experiments(param_sweeps, cached_files_dir=cached_files_dir, debug_filenames=True)
 
         # Run normally
-        experiment.run_batch_experiments(param_sweeps, cached_files_dir=cached_files_dir)
+        experiment.run_batch_experiments(
+            param_sweeps, cached_files_dir=cached_files_dir
+        )
 
         # If needed, force rerun of all experiments
         # experiment.run_batch_experiments(param_sweeps, cached_files_dir=cached_files_dir, force_rerun=True)
@@ -100,7 +110,9 @@ def main():
         for key, value in params.items():
             setattr(experiment, key, value)
         filename = experiment.generate_filename()
-        cached_file_path = os.path.join(cached_files_dir, filename) if cached_files_dir else None
+        cached_file_path = (
+            os.path.join(cached_files_dir, filename) if cached_files_dir else None
+        )
 
         if cached_files_dir and os.path.exists(cached_file_path):
             completed_experiments += 1
@@ -118,7 +130,12 @@ def main():
 
     try:
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(run_single_experiment_wrapper, params, cached_files_dir, verbose) for params in incomplete_experiments]
+            futures = [
+                executor.submit(
+                    run_single_experiment_wrapper, params, cached_files_dir, verbose
+                )
+                for params in incomplete_experiments
+            ]
             for i, future in enumerate(futures):
                 try:
                     future.result()  # Wait for all futures to complete
@@ -127,7 +144,9 @@ def main():
                 if verbose:
                     elapsed_time = time.time() - start_time
                     avg_time_per_experiment = elapsed_time / (i + 1)
-                    print(f"Average completion time per experiment: {avg_time_per_experiment:.2f} seconds")
+                    print(
+                        f"Average completion time per experiment: {avg_time_per_experiment:.2f} seconds"
+                    )
                     print(f"Experiments completed: {i + 1}/{total_experiments}")
     except KeyboardInterrupt:
         print("Keyboard interrupt received. Terminating experiments...")

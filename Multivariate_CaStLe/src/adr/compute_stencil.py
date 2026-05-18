@@ -7,6 +7,7 @@ plot the stencil graph.
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import argparse
@@ -34,7 +35,9 @@ def compute_stencil(filepath, plot_stencil=False):
 
     # Reshape solution to from (Xs, Ys, time, species) -> (variable_n, X, Y, T)
     solution = experiment.solution
-    data = solution.reshape((solution.shape[3], solution.shape[1], solution.shape[2], solution.shape[0]))
+    data = solution.reshape(
+        (solution.shape[3], solution.shape[1], solution.shape[2], solution.shape[0])
+    )
 
     # Compute stencil
     start_time = time.time()
@@ -56,13 +59,19 @@ def compute_stencil(filepath, plot_stencil=False):
     # Plot stencil if requested
     if plot_stencil:
         print("Plotting stencil...")
-        ms.plot_stencil_graph(stencil_graph=results["graph"], stencil_val_matrix=results["val_matrix"])
+        ms.plot_stencil_graph(
+            stencil_graph=results["graph"], stencil_val_matrix=results["val_matrix"]
+        )
         plt.show()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute stencil from ADR experiment results.")
-    parser.add_argument("filepath", type=str, help="Path to the ADR experiment results file (pkl).")
+    parser = argparse.ArgumentParser(
+        description="Compute stencil from ADR experiment results."
+    )
+    parser.add_argument(
+        "filepath", type=str, help="Path to the ADR experiment results file (pkl)."
+    )
     parser.add_argument("--plot", action="store_true", help="Plot the stencil graph.")
     args = parser.parse_args()
 

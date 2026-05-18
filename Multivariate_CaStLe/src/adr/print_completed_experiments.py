@@ -13,6 +13,7 @@ Usage
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import argparse
@@ -117,9 +118,18 @@ def print_parameters(params: dict, filename: str, coded: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Check completed experiments in a directory or print parameters of a single file.")
-    parser.add_argument("path", type=str, help="Path to the directory or file to check.")
-    parser.add_argument("--coded", "-c", action="store_true", help="Print parameters in code format style.")
+    parser = argparse.ArgumentParser(
+        description="Check completed experiments in a directory or print parameters of a single file."
+    )
+    parser.add_argument(
+        "path", type=str, help="Path to the directory or file to check."
+    )
+    parser.add_argument(
+        "--coded",
+        "-c",
+        action="store_true",
+        help="Print parameters in code format style.",
+    )
     args = parser.parse_args()
 
     if os.path.isdir(args.path):

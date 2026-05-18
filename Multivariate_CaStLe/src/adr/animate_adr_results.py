@@ -10,6 +10,7 @@ Usage
 """
 
 import os, sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import matplotlib.pyplot as plt
@@ -38,7 +39,9 @@ def animate_adr_results(filepath, save_path=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: python animate_adr_results.py <path_to_adr_experiment.pkl> [<path_to_save_animation.gif>]")
+        print(
+            "Usage: python animate_adr_results.py <path_to_adr_experiment.pkl> [<path_to_save_animation.gif>]"
+        )
         sys.exit(1)
 
     filepath = sys.argv[1]
