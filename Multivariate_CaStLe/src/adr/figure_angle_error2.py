@@ -1,3 +1,17 @@
+"""
+Figure: Angle Estimation Error vs. Diffusion and Advection
+
+Reads pre-extracted CSV data (``angle_error2_data.csv``) and produces the
+two-panel figure showing how M-CaStLe angle estimation error varies with
+diffusion coefficient (left) and advection velocity magnitude (right).
+Both mean and median are plotted with confidence-interval bands; a secondary
+axis shows the proportion of cases where the error exceeds 45°.
+
+Usage
+-----
+    python figure_angle_error2.py [--input PATH] [--output-dir DIR] [--ci-level N]
+"""
+
 from pathlib import Path
 import argparse
 import numpy as np
@@ -10,6 +24,11 @@ from matplotlib.ticker import FuncFormatter
 
 
 def main():
+    """
+    Parse arguments, load CSV data, and write the angle-error figure to disk.
+
+    The figure is saved as both PDF and PNG in the specified output directory.
+    """
     parser = argparse.ArgumentParser(
         description="Generate the angle_error2 figure from extracted CSV data."
     )

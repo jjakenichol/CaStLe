@@ -1,3 +1,14 @@
+"""
+Plot Stencil Results
+
+Load a saved M-CaStLe stencil results pickle and display the stencil graph
+using :func:`mcastle_utils.plot_stencil_graph`.
+
+Usage
+-----
+    python plot_stencil_results.py <path_to_stencil_results.pkl>
+"""
+
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -8,6 +19,14 @@ import mcastle_utils as ms
 
 
 def plot_stencil_results(filepath):
+    """
+    Load a stencil results pickle and display the stencil graph.
+
+    Args:
+        filepath (str): Path to a stencil results file (.pkl) produced by
+            :func:`compute_stencil.compute_stencil` or
+            :meth:`ADRExperiment.run_adr_experiment`.
+    """
     # Load the stencil results dictionary
     with open(filepath, "rb") as f:
         results = pickle.load(f)

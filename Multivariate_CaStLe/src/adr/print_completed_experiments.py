@@ -1,15 +1,32 @@
-import os
+"""
+Print Completed ADR Experiments
+
+Inspect a directory of saved ADRExperiment pickles and print the parameter
+set for each completed experiment.  Accepts either a directory (prints all
+completed experiments) or a single ``.pkl`` file (prints that file's
+parameters).  The ``--coded`` flag formats output as Python keyword arguments
+so parameters can be copy-pasted directly into a sweep configuration.
+
+Usage
+-----
+    python print_completed_experiments.py <directory_or_file> [--coded]
+"""
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import argparse
 from ADRExperiment import ADRExperiment
 
 
 def check_completed_experiments(directory: str, coded: bool = False) -> None:
     """
-    Check which parameter sets have been completed in the given directory.
+    Print the parameter set for every completed experiment in a directory.
 
     Args:
-        directory (str): The directory to check.
-        formatted (bool): Whether to print the parameters in a formatted style.
+        directory (str): Path to the directory containing ``.pkl`` experiment files.
+        coded (bool): If True, print parameters as Python keyword arguments
+            (suitable for pasting into a sweep configuration).
     """
     completed_experiments = []
 
@@ -33,11 +50,11 @@ def check_completed_experiments(directory: str, coded: bool = False) -> None:
 
 def print_file_parameters(file_path: str, coded: bool = False) -> None:
     """
-    Print the parameters of a single experiment file.
+    Print the parameters encoded in a single ADRExperiment filename.
 
     Args:
-        file_path (str): The path to the file.
-        formatted (bool): Whether to print the parameters in a formatted style.
+        file_path (str): Path to the ``.pkl`` experiment file.
+        coded (bool): If True, format parameters as Python keyword arguments.
     """
     try:
         filename = os.path.basename(file_path)
@@ -50,11 +67,14 @@ def print_file_parameters(file_path: str, coded: bool = False) -> None:
 
 def print_parameters(params: dict, filename: str, coded: bool = False) -> None:
     """
-    Print the parameters in the specified order.
+    Print an ordered set of ADR experiment parameters.
 
     Args:
-        params (dict): The parameters to print.
-        formatted (bool): Whether to print the parameters in a formatted style.
+        params (dict): Parameter dictionary returned by
+            :meth:`ADRExperiment.parse_filename`.
+        filename (str): The source filename, printed as a header line.
+        coded (bool): If True, format each parameter as a Python keyword
+            argument (e.g. ``diff_coeffs=[0.05, 0.05],``).
     """
     order = [
         "init_center",

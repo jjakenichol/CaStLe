@@ -1,3 +1,22 @@
+"""
+Post-Process ADR Stencil Results
+
+Loads all stencil result pickles from a results directory, matches each to
+its corresponding ADRExperiment file, extracts experiment parameters, and
+computes a full suite of metrics:
+
+* Reaction-graph MCC (with and without autocausal links)
+* Precision, Recall, FDR from the confusion matrix
+* M-stencil angle estimation error (standard and nonnegative variants)
+
+The resulting ``pandas.DataFrame`` is saved as ``analysis_results.pkl`` in
+the results directory for downstream plotting with ``figure_angle_error2.py``.
+
+Usage
+-----
+    python post_process_results.py <results_dir> <experiments_dir>
+"""
+
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
@@ -15,10 +34,40 @@ import causal_graph_metrics as graph_metrics
 
 
 def serialize_param(param):
+    """
+    Extract the first element of a list-valued ADR parameter for use as a scalar DataFrame column.
+
+    Args:
+        param (list): A list-valued parameter (e.g. ``[0.05, 0.05]`` for ``diff_coeffs``).
+
+    Returns:
+        The first element of ``param``.
+    """
     return param[0]
 
 
 def load_results(results_dir, experiments_dir):
+    """
+    Load stencil results and matching ADRExperiment files into a DataFrame.
+
+    Scans ``results_dir`` for files matching ``**stencil*results*.pkl``,
+    parses hyperparameters from each filename, loads the corresponding
+    ADRExperiment pickle from ``experiments_dir``, and assembles all
+    parameters and stencil outputs into a single row per experiment.
+
+    Args:
+        results_dir (str): Directory containing stencil result pickles.
+        experiments_dir (str): Directory containing the source ADRExperiment pickles.
+
+    Returns:
+        tuple:
+            - **df** (*pandas.DataFrame*): One row per successfully loaded experiment,
+              with columns for all ADR parameters and the stencil results dict.
+            - **corrupted_summary** (*pandas.DataFrame*): Files that could not be
+              loaded, with columns ``filepath`` and ``reason``.
+            - **illegal_files** (*list[str]*): Filenames skipped due to invalid
+              hyperparameter values (e.g. ``graph_p_threshold >= 1.0``).
+    """
     data = []
     corrupted_files = []  # Keep track of corrupted files
     illegal_files = []
@@ -170,6 +219,18 @@ def filter_dataframe(df, filter_dict):
 
 
 def get_reaction_results(row):
+    """
+    Extract the reaction graph from a stencil result row.
+
+    Intended for use with ``df.apply(..., axis=1)``.
+
+    Args:
+        row (pandas.Series): A results DataFrame row containing ``stencil_results``.
+
+    Returns:
+        tuple: ``(reaction_graph, reaction_val_matrix)`` from
+        :func:`mcastle_utils.construct_reaction_graph`.
+    """
     stencil_graph = row["stencil_results"]["graph"]
     stencil_val_matrix = row["stencil_results"]["val_matrix"]
     reaction_graph, reaction_val_matrix = ms.construct_reaction_graph(stencil_graph, stencil_val_matrix)
@@ -178,6 +239,18 @@ def get_reaction_results(row):
 
 
 def get_summary_results(row):
+    """
+    Extract the summarized stencil from a stencil result row.
+
+    Intended for use with ``df.apply(..., axis=1)``.
+
+    Args:
+        row (pandas.Series): A results DataFrame row containing ``stencil_results``.
+
+    Returns:
+        tuple: ``(summary_graph, summary_val_matrix)`` from
+        :func:`mcastle_utils.summarize_stencil`.
+    """
     stencil_graph = row["stencil_results"]["graph"]
     stencil_val_matrix = row["stencil_results"]["val_matrix"]
     summary_graph, summary_val_matrix = ms.summarize_stencil(stencil_graph, stencil_val_matrix)
@@ -186,6 +259,21 @@ def get_summary_results(row):
 
 
 def apply_separate_stencil_angle_difference(row, verbose=False):
+    """
+    Compute the angle estimation error by averaging estimates across all species-pair stencils.
+
+    For each (parent, child) variable pair, the per-species spatial graph is
+    extracted, an angle is estimated, and the results are averaged before
+    computing the difference from the ground-truth advection angle.
+
+    Args:
+        row (pandas.Series): A results row with ``stencil_results`` and ``velocity_angle``.
+        verbose (bool): Print intermediate angle estimates if True.
+
+    Returns:
+        float: Absolute angle difference (degrees) between the ground truth
+        and the averaged per-species estimate.
+    """
     ground_truth_angle = row["velocity_angle"]
     mstencil_graph = row["stencil_results"]["graph"]
     mstencil_val_matrix = row["stencil_results"]["val_matrix"]
@@ -212,16 +300,47 @@ def apply_separate_stencil_angle_difference(row, verbose=False):
 
 
 def apply_reaction_mcc(row, ground_truth_reaction_graph):
+    """
+    Compute the MCC between the discovered and ground-truth reaction graphs.
+
+    Args:
+        row (pandas.Series): A results row containing ``reaction_results``.
+        ground_truth_reaction_graph (numpy.ndarray): Ground-truth reaction graph
+            (species × species × 2 string array).
+
+    Returns:
+        float: Matthews Correlation Coefficient.
+    """
     reaction_graph = row["reaction_results"][0]
     return graph_metrics.matthews_correlation_coefficient(true_graph=ground_truth_reaction_graph, discovered_graph=reaction_graph)
 
 
 def apply_reaction_mcc_no_auto(row, ground_truth_reaction_graph_no_auto):
+    """
+    Compute the MCC against a ground-truth reaction graph that excludes autocausal links.
+
+    Args:
+        row (pandas.Series): A results row containing ``reaction_results``.
+        ground_truth_reaction_graph_no_auto (numpy.ndarray): Ground-truth graph
+            with self-links removed.
+
+    Returns:
+        float: Matthews Correlation Coefficient.
+    """
     reaction_graph = row["reaction_results"][0]
     return graph_metrics.matthews_correlation_coefficient(true_graph=ground_truth_reaction_graph_no_auto, discovered_graph=reaction_graph)
 
 
 def apply_summary_stencil_angle(row):
+    """
+    Estimate the advection angle from the summarized (species-collapsed) stencil.
+
+    Args:
+        row (pandas.Series): A results row containing ``summary_results``.
+
+    Returns:
+        float: Estimated angle in degrees.
+    """
     summary_graph = row["summary_results"][0]
     summary_val_matrix = row["summary_results"][1]
     stencil_angle = ms.get_angle_from_stencil(summary_graph, summary_val_matrix)
@@ -229,6 +348,15 @@ def apply_summary_stencil_angle(row):
 
 
 def apply_mstencil_angle(row):
+    """
+    Estimate the advection angle directly from the full multivariate stencil.
+
+    Args:
+        row (pandas.Series): A results row containing ``stencil_results``.
+
+    Returns:
+        float: Estimated angle in degrees.
+    """
     mstencil_graph = row["stencil_results"]["graph"]
     mstencil_val_matrix = row["stencil_results"]["val_matrix"]
     mstencil_angle = ms.get_angle_from_stencil(mstencil_graph, mstencil_val_matrix)
@@ -236,6 +364,15 @@ def apply_mstencil_angle(row):
 
 
 def apply_mstencil_angle_nonnegative(row):
+    """
+    Estimate the advection angle using the nonnegative-coefficient angle variant.
+
+    Args:
+        row (pandas.Series): A results row containing ``stencil_results``.
+
+    Returns:
+        float: Estimated angle in degrees (nonnegative variant).
+    """
     mstencil_graph = row["stencil_results"]["graph"]
     mstencil_val_matrix = row["stencil_results"]["val_matrix"]
     mstencil_angle = ms.get_angle_from_stencil_nonnegative(mstencil_graph, mstencil_val_matrix)
@@ -243,6 +380,17 @@ def apply_mstencil_angle_nonnegative(row):
 
 
 def apply_angle_difference(row, angle_col_name):
+    """
+    Compute the difference between the ground-truth and an estimated advection angle.
+
+    Args:
+        row (pandas.Series): A results row containing ``velocity_angle`` and the
+            estimated angle column named by ``angle_col_name``.
+        angle_col_name (str): Column name of the estimated angle in ``row``.
+
+    Returns:
+        float: Absolute angle difference in degrees.
+    """
     ground_truth_angle = row["velocity_angle"]
     estimated_angle = row[angle_col_name]
     angle_difference = ms.angle_difference(ground_truth_angle, estimated_angle)
@@ -250,11 +398,32 @@ def apply_angle_difference(row, angle_col_name):
 
 
 def apply_confusion_matrix(row, ground_truth_reaction_graph):
+    """
+    Compute the confusion matrix for reaction-graph recovery.
+
+    Args:
+        row (pandas.Series): A results row containing ``reaction_results``.
+        ground_truth_reaction_graph (numpy.ndarray): Ground-truth reaction graph.
+
+    Returns:
+        tuple: ``(TP, FP, FN, TN)`` counts.
+    """
     reaction_graph = row["reaction_results"][0]
     return graph_metrics.get_confusion_matrix(ground_truth_reaction_graph, reaction_graph)
 
 
 def compute_metrics(row):
+    """
+    Compute precision, recall, and FDR from confusion-matrix columns.
+
+    Expects the row to have integer columns ``TP``, ``FP``, ``FN``.
+
+    Args:
+        row (pandas.Series): A results row with ``TP``, ``FP``, ``FN`` columns.
+
+    Returns:
+        pandas.Series: Series with keys ``precision``, ``recall``, ``FDR``.
+    """
     TP = row["TP"]
     FP = row["FP"]
     FN = row["FN"]
@@ -265,6 +434,20 @@ def compute_metrics(row):
 
 
 def process_univariate_estimation(row):
+    """
+    Run univariate M-CaStLe-PC on each species independently and return the mean angle error.
+
+    For each variable in the dataset, the algorithm is run with permissive thresholds
+    (pc_alpha=0.9, graph_p_threshold=0.9) to recover an angle estimate; the mean
+    absolute difference from the ground-truth advection angle is returned.
+
+    Args:
+        row (pandas.Series): A results row containing an ``experiment``
+            (ADRExperiment instance with a loaded solution).
+
+    Returns:
+        float: Mean absolute angle estimation error (degrees) across all species.
+    """
     experiment = row["experiment"]
     solution = experiment.solution
     data = solution.transpose((3, 0, 1, 2))
@@ -293,6 +476,14 @@ def process_univariate_estimation(row):
 
 
 def main(results_dir, experiments_dir):
+    """
+    Load all stencil results, compute metrics, and save the analysis DataFrame.
+
+    Args:
+        results_dir (str): Directory containing stencil result pickles and
+            where ``analysis_results.pkl`` will be written.
+        experiments_dir (str): Directory containing the source ADRExperiment pickles.
+    """
     print("Loading data...")
     if len(experiments_dir) == 0:
         print("Empty experiments directory passed!")

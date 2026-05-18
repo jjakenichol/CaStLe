@@ -1,15 +1,29 @@
+"""
+Animate ADR Experiment Results
+
+Load a saved ADRExperiment pickle and display (or save) an animation of the
+species concentration fields evolving over the simulation time window.
+
+Usage
+-----
+    python animate_adr_results.py <path_to_experiment.pkl> [<output.gif>]
+"""
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import matplotlib.pyplot as plt
-import sys
 from ADRExperiment import ADRExperiment
 
 
 def animate_adr_results(filepath, save_path=None):
     """
-    Load the ADR experiment object and animate the results.
+    Load an ADRExperiment pickle and animate the PDE solution.
 
     Args:
-        filepath (str): Path to the ADR experiment results file (pkl).
-        save_path (str, optional): Path to save the animation as a GIF. Defaults to None.
+        filepath (str): Path to the ADRExperiment results file (.pkl).
+        save_path (str, optional): Destination path for a saved GIF.
+            If None the animation is only displayed interactively.
     """
     # Load the ADR experiment object
     experiment = ADRExperiment.load_results(filepath)

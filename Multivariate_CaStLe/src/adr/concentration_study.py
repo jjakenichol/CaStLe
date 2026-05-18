@@ -1,5 +1,23 @@
+"""
+ADR Concentration Sensitivity Study
+
+Examines how initial species concentration affects M-CaStLe stencil recovery.
+Sweeps ``init_concentration`` (50, 200, 400), ``plume_size`` (10, 50),
+``diff_coeffs`` (0.01–0.2), and time-series length (21, 51, 101 steps).
+Results are cached under ``results/concentration_study/ADR_model_output/``.
+
+This analysis did not appear in the main paper but provides supplemental
+evidence for the effect of signal magnitude on causal discovery accuracy.
+
+Usage
+-----
+    python concentration_study.py
+"""
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import numpy as np
-import os
 import time
 from ADRExperiment import ADRExperiment
 from concurrent.futures import ProcessPoolExecutor
@@ -7,11 +25,23 @@ from itertools import product
 
 
 def run_single_experiment_wrapper(params, cached_files_dir, verbose):
+    """
+    Construct and run a single ADR experiment; used as the parallel worker target.
+
+    Args:
+        params (dict): Parameter dictionary passed to
+            :meth:`ADRExperiment.run_single_experiment`.
+        cached_files_dir (str): Directory for caching completed experiment files.
+        verbose (bool): Enable verbose output during the experiment.
+    """
     experiment = ADRExperiment(verbose=verbose)
     experiment.run_single_experiment(params, cached_files_dir)
 
 
 def main():
+    """
+    Define the concentration sweep, skip already-completed experiments, and run the remainder.
+    """
     param_sweeps = {
         "mesh_shape": ["circle"],
         "init_center": [[0.0, 0.0]],

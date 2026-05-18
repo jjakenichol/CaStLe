@@ -1,5 +1,24 @@
+"""
+Run Batch ADR Experiments
+
+Executes the primary ADR parameter sweep used in the paper benchmarks.
+Parameters swept: diffusion coefficients, advection velocity magnitude
+(1–8), velocity angle (0–90° in 15° steps), and reaction rate (1, 2, 4).
+Results are cached under ``results/ADR_model_output/``.
+
+Set ``num_workers = 1`` (default) to run sequentially via
+:meth:`ADRExperiment.run_batch_experiments`, or increase it to run
+multiple experiments in parallel with :class:`ProcessPoolExecutor`.
+
+Usage
+-----
+    python run_batch_experiments.py
+"""
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import numpy as np
-import os
 import time
 from ADRExperiment import ADRExperiment
 from concurrent.futures import ProcessPoolExecutor
@@ -7,11 +26,23 @@ from itertools import product
 
 
 def run_single_experiment_wrapper(params, cached_files_dir, verbose):
+    """
+    Construct and run a single ADR experiment; used as the parallel worker target.
+
+    Args:
+        params (dict): Parameter dictionary passed to
+            :meth:`ADRExperiment.run_single_experiment`.
+        cached_files_dir (str): Directory for caching completed experiment files.
+        verbose (bool): Enable verbose output during the experiment.
+    """
     experiment = ADRExperiment(verbose=verbose)
     experiment.run_single_experiment(params, cached_files_dir)
 
 
 def main():
+    """
+    Define the parameter sweep, skip already-completed experiments, and run the remainder.
+    """
     param_sweeps = {
         "mesh_shape": ["circle"],
         "init_center": [[0.0, 0.0]],

@@ -1,6 +1,17 @@
+"""
+Unit Tests for ADRExperiment
+
+Verifies the core ADRExperiment lifecycle: initialisation, filename generation
+and parsing (round-trip), save/load, and MATLAB-mocked experiment execution.
+Run with ``python -m unittest unitTestADRExperiment`` from the ``src/adr/``
+directory, or via ``python unitTestADRExperiment.py``.
+"""
+
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import unittest
 import numpy as np
-import os
 from unittest.mock import patch
 from ADRExperiment import ADRExperiment
 
