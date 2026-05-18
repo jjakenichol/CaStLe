@@ -17,7 +17,11 @@ from tigramite.independence_tests.parcorr import ParCorr
 import mcastle_utils as ms
 import trad_CD_algs as cd
 
-from causal_graph_metrics import F1_score, get_graph_metrics, matthews_correlation_coefficient as mcc
+from causal_graph_metrics import (
+    F1_score,
+    get_graph_metrics,
+    matthews_correlation_coefficient as mcc,
+)
 
 import helper_functions as helper
 
@@ -60,7 +64,9 @@ DATA_FILENAME = DATA_FILENAME[:-4] + ".npy"
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
 # Compute true graph from the dataset's coefficients
-true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(spatial_coefficients)
+true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(
+    spatial_coefficients
+)
 true_full_graph = ms.map_stencil_graph_to_full_graph(true_stencil, grid_size=GRID_SIZE)
 
 # Compute graph with PC
@@ -69,7 +75,13 @@ pval_threshold = 0.1
 parcorr = ParCorr(significance="analytic")
 start_time = time.time()
 results = cd.PC(
-    data=data, cond_ind_test=parcorr, pc_alpha=pc_alpha, max_tau=1, min_tau=1, pval_threshold=pval_threshold, fdr_method=FDR_METHOD
+    data=data,
+    cond_ind_test=parcorr,
+    pc_alpha=pc_alpha,
+    max_tau=1,
+    min_tau=1,
+    pval_threshold=pval_threshold,
+    fdr_method=FDR_METHOD,
 )
 end_time = time.time()
 algorithm_time = end_time - start_time
@@ -78,7 +90,9 @@ algorithm_time = end_time - start_time
 reconstructed_full_graph = results["graph"]
 
 # Compute performance metrics
-F1, P, R, TP, FP, FN, TN = F1_score(true_graph=true_full_graph, discovered_graph=reconstructed_full_graph)
+F1, P, R, TP, FP, FN, TN = F1_score(
+    true_graph=true_full_graph, discovered_graph=reconstructed_full_graph
+)
 MCC = mcc(TP=TP, FP=FP, FN=FN, TN=TN)
 
 output_object = np.array(
@@ -103,7 +117,9 @@ output_object = np.array(
     dtype=object,
 )
 
-SAVE_PATH = os.path.join(SAVE_PATH_DIR, helper.add_fdr_to_filename(DATA_FILENAME, FDR_METHOD))
+SAVE_PATH = os.path.join(
+    SAVE_PATH_DIR, helper.add_fdr_to_filename(DATA_FILENAME, FDR_METHOD)
+)
 # Print or save results
 if not PRINT:
     # Save to file
@@ -113,7 +129,11 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
     print(f"Save path would be {SAVE_PATH}")
 if TIME_ALG:
-    print("Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time))
+    print(
+        "Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time)
+    )

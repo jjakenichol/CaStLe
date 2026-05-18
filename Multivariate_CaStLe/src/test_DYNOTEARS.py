@@ -16,7 +16,11 @@ import time
 
 import mcastle_utils as ms
 
-from causal_graph_metrics import F1_score, get_graph_metrics, matthews_correlation_coefficient as mcc
+from causal_graph_metrics import (
+    F1_score,
+    get_graph_metrics,
+    matthews_correlation_coefficient as mcc,
+)
 
 # Import regular DYNOTEARS from trad_CD_algs
 from trad_CD_algs import DYNOTEARS
@@ -62,7 +66,9 @@ SAVE_PATH = os.path.join(SAVE_PATH_DIR, RESULT_FILENAME + ".npy")
 GRID_SIZE = int(DATA_FILENAME.split("x")[0])
 
 # Compute true graph from the dataset's coefficients using mcastle_utils
-true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(spatial_coefficients)
+true_stencil, true_stencil_val_matrix = ms.get_stencil_graph_from_coefficients(
+    spatial_coefficients
+)
 true_full_graph = ms.map_stencil_graph_to_full_graph(true_stencil, grid_size=GRID_SIZE)
 
 # Run regular DYNOTEARS
@@ -84,7 +90,9 @@ algorithm_time = end_time - start_time
 reconstructed_full_graph = results["graph"]
 
 # Compute performance metrics
-F1, P, R, TP, FP, FN, TN = F1_score(true_graph=true_full_graph, discovered_graph=reconstructed_full_graph)
+F1, P, R, TP, FP, FN, TN = F1_score(
+    true_graph=true_full_graph, discovered_graph=reconstructed_full_graph
+)
 MCC = mcc(TP=TP, FP=FP, FN=FN, TN=TN)
 
 # Assemble output object
@@ -118,6 +126,10 @@ if not PRINT:
         np.save(f, output_object)
 else:
     print(output_object)
-    print("F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN))
+    print(
+        "F1={}, P={}, R={}, TP={}, FP={}, FN={}, TN={}".format(F1, P, R, TP, FP, FN, TN)
+    )
     print(f"Save path would be {SAVE_PATH}")
-    print("Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time))
+    print(
+        "Time elapsed for algorithm completion: {:.2f} seconds".format(algorithm_time)
+    )

@@ -6,6 +6,7 @@ Utilities for generating synthetic spatiotemporal datasets from Structural Causa
 functions to build random or structured coefficient matrices, check VAR stability, and
 simulate multivariate grid time series.
 """
+
 import numpy as np
 from numpy import linalg as LA
 import random
