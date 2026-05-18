@@ -103,28 +103,6 @@ def convert_string_assumptions_to_indices(
     return link_assumptions_indices
 
 
-def pretty_print_link_assumptions(link_assumptions_indices):
-    """
-    Pretty prints the link assumptions dictionary with variable indices.
-
-    Parameters
-    ----------
-    link_assumptions_indices : dict
-        Dictionary mapping child variable index to a dict of ``{(parent_idx, lag): link_type}``
-        entries, as used by Tigramite's ``link_assumptions`` argument.
-    """
-    print("variable_link_assumptions = {")
-    for child_idx, parent_links in link_assumptions_indices.items():
-        print(f"    {child_idx}: {{", end="")
-        parent_links_str = ", ".join(
-            [
-                f'({parent_idx}, {lag}): "{link_type}"'
-                for (parent_idx, lag), link_type in parent_links.items()
-            ]
-        )
-        print(f"{parent_links_str}}},")
-    print("}")
-
 
 def print_significant_links(
     val_matrix,
@@ -213,67 +191,6 @@ def print_significant_links(
                     string += " | unclear orientation due to conflict"
         print(string)
 
-
-def get_last_n_indices(array1: list, array2: list) -> list:
-    """Given two arrays, use the length, N, of the first to find the last N indices of the second.
-
-    Args:
-        array1 (list): First array for length N
-        array2 (list): Second array for finding last N indices
-
-    Returns:
-        list: List of last indices in array2
-    """
-    N = len(array2)
-    start_index = len(array1) - N
-    return (
-        list(range(start_index, len(array1)))
-        if start_index >= 0
-        else list(range(len(array1)))
-    )
-
-
-def get_mixed_var_graph(given_graph, given_val_matrix, var_idx):
-    """
-    Extract a single-variable stencil view that mixes the center node from one variable with
-    the off-center nodes from another.
-
-    Parameters
-    ----------
-    given_graph : np.ndarray
-        Full stencil graph of shape ``(9*N, 9*N, 2)``.
-    given_val_matrix : np.ndarray
-        Corresponding value matrix of shape ``(9*N, 9*N, 2)``.
-    var_idx : int
-        Index of the variable whose off-center nodes are used to fill positions 0-3 and 5-8
-        of the returned 9-node stencil.
-
-    Returns
-    -------
-    return_graph : np.ndarray
-        Shape ``(9, 9, 2)`` stencil graph with center node from variable 0 and neighbor nodes
-        from ``var_idx``.
-    val_matrix : np.ndarray
-        Shape ``(9, 9, 2)`` value matrix corresponding to ``return_graph``.
-    """
-    # Initialize data structures
-    return_graph = np.full((9, 9, 2), fill_value="")
-    val_matrix = np.full((9, 9, 2), fill_value=0.0)
-    # Gather center node
-    return_graph[4, 4, :] = given_graph[4, 4, :]
-    # Gather neighbors
-    for i in range(9):
-        if i != 4:
-            # Compute mapping to alternate variable position
-            if i < 4:
-                j = i + var_idx * 9
-            else:
-                j = i + var_idx * 9 - 1
-            return_graph[i, i, :] = given_graph[j, j, :]
-            val_matrix[i, i, :] = given_val_matrix[j, j, :]
-    # return_graph[9, 9, :] = given_graph[-1, -1, :]
-    # val_matrix[9, 9, :] = given_val_matrix[-1, -1, :]
-    return return_graph, val_matrix
 
 
 def char_range(c1=None, c2=None, num_characters=None):
@@ -441,22 +358,6 @@ def get_position_description(key: Tuple[int, int, int]) -> str:
     base_index = key[0] % 9
     return position_descriptions.get(base_index, "Unknown position")
 
-
-def pretty_print_angle_dict(angle_dict: Dict[Tuple[int, int, int], int]) -> None:
-    """
-    Pretty-print the angle dictionary in a structured format.
-
-    The function prints each entry in the angle dictionary with its key, value,
-    and a description of the position.
-
-    Parameters:
-        angle_dict (Dict[Tuple[int, int, int], int]): The angle dictionary to pretty-print
-
-    Returns:
-        None
-    """
-    for key, value in angle_dict.items():
-        print(f" {key}: {value}, # {get_position_description(key)}")
 
 
 def get_vectors(stencil_graph: np.ndarray, stencil_val_matrix: np.ndarray) -> list:
@@ -929,25 +830,6 @@ def create_custom_stencil_graph(
     else:
         return stencil_graph
 
-
-def generate_centers(num_species):
-    """
-    Yield the stencil center node index for each variable.
-
-    The center of variable ``k`` is at stencil position ``4 + 9*k``.
-
-    Parameters
-    ----------
-    num_species : int
-        Number of variables (species).
-
-    Yields
-    ------
-    int
-        Center node index for each variable, in order.
-    """
-    for i in range(num_species):
-        yield 4 + 9 * i
 
 
 def fisher_z_transform(r: float) -> float:
