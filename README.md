@@ -4,11 +4,11 @@
 
 M-CaStLe is a multivariate extension of CaStLe for causal discovery in high-dimensional space-time systems, enabling robust identification of both spatial and inter-variable causal dynamics. Causal discovery in gridded space-time data is fundamentally challenging: the number of spatial locations often far exceeds the number of available time points, and multiple interacting variables complicate both inference and interpretation. CaStLe (Nichol et al. 2025) addressed this "large-*p*, small-*n*" problem for univariate fields by exploiting locality (stationarity of a small Moore neighborhood) and a two-stage meta-algorithm (gathering local replicates + causal estimation). However, many scientific systems—from climate models to ecological networks—are inherently multivariate, with cross-variable couplings that the original CaStLe cannot capture.
 
-M-CaStLe extends CaStLe to N-variable fields by representing each grid-cell's 3×3 Moore neighborhood over N variables as a single 9N-dimensional vector, then applying time-series causal discovery algorithms under stencil-specific link assumptions to learn a 9N×9N local causal stencil. Once learned, that multivariate stencil is stitched across every cell of a toroidal grid to reconstruct a global causal graph of size (grid²·N)². From this structure we extract:
+M-CaStLe extends CaStLe to V-variable fields by representing each grid-cell's 3x3 Moore neighborhood over V variables as a single 9V-dimensional vector, then applying time-series causal discovery algorithms under stencil-specific link assumptions to learn a 9V x 9V local causal stencil. Once learned, that multivariate stencil is stitched across every cell of a toroidal N x N grid to reconstruct a global causal graph over N^2 * V nodes. From this structure we extract:
 
-- the multivariate causal **stencil graph** (9N×9N)
-- a compact **reaction graph** (N×N) of aggregated variable-to-variable effects
-- a **spatial summary** (9×9) of directional influence patterns
+- the multivariate causal **stencil graph** (9V x 9V)
+- a compact **reaction graph** (V x V) of aggregated variable-to-variable effects
+- a **spatial summary** (9 x 9) of directional influence patterns
 
 ## Repository structure
 
